@@ -43,7 +43,7 @@ async function loadModel () {
     
     await _compileModel(model, optimization_data)
     console.log("Training start...")
-    await model.fit(sampleBatch, tf.tensor(y), {batchSize:1})
+    await model.fit(sampleBatch, tf.tensor(y), {batchSize:2})
     console.log("Training Complete!")
     // console.log(model)
 }
