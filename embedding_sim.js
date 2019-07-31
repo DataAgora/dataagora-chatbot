@@ -2,48 +2,48 @@ var tf = require('@tensorflow/tfjs-node');
 
 class EmbeddingSim extends tf.layers.Layer {
 
-    constructor(use_bias=false, initializer=tf.initializers.zeros, regularizer=null, constraint=null, stop_gradient=false, ...args) {
+    constructor(useBias=false, initializer=tf.initializers.zeros, regularizer=null, constraint=null, stopGradient=false, ...args) {
         super(...args);
         this.supportsMasking = true;
-        this.use_bias = use_bias;
+        this.useBias = useBias;
         this.initializer = initializer;
         this.regularizer = regularizer;
         this.constraint = constraint;
-        this.stop_gradient = stop_gradient
+        this.stopGradient = stopGradient
     }
 
     getConfig() {
-        var base_config = super.getConfig();
-        base_config["use_bias"] = this.use_bias;
-        base_config["initializer"] = this.initializer;
-        base_config["regularizer"] = this.regularizer;
-        base_config["constraint"] = this.constraint;
-        base_config["stop_gradient"] = this.stop_gradient;
+        var baseConfig = super.getConfig();
+        baseConfig["useBias"] = this.useBias;
+        baseConfig["initializer"] = this.initializer;
+        baseConfig["regularizer"] = this.regularizer;
+        baseConfig["constraint"] = this.constraint;
+        baseConfig["stopGradient"] = this.stopGradient;
 
-        return base_config;
+        return baseConfig;
     }
 
-    build(input_shape) {
-        if (this.use_bias) {
-            var embed_shape = input_shape[1];
-            var token_num = parseInt(embed_shape[0])
+    build(inputShape) {
+        if (this.useBias) {
+            var embedShape = inputShape[1];
+            var tokenNum = parseInt(embedShape[0])
             this.bias = this.addWeight(
                 "bias",
-                (token_num),
+                (tokenNum),
                 undefined,
                 this.initializer,
                 this.regularizer,
                 this.constraint
             )
         }
-        super.build(input_shape);
+        super.build(inputShape);
     }
 
-    computeOutputShape(input_shape) {
-        var feature_shape = input_shape[0];
-        var embed_shape = input_shape[1];
-        var token_num = embed_shape[0];
-        return feature_shape.slice(0, feature_shape.length - 1).concat([token_num])
+    computeOutputShape(inputShape) {
+        var featureShape = inputShape[0];
+        var embedShape = inputShape[1];
+        var tokenNum = embedShape[0];
+        return featureShape.slice(0, featureShape.length - 1).concat([tokenNum])
     }
 
     computeMask(inputs, mask=null) {
@@ -58,70 +58,6 @@ class EmbeddingSim extends tf.layers.Layer {
         inputs = inputs[0];
         var outputs = tf.dot(inputs, tf.transpose(embeddings));
         return tf.layers.softmax(outputs)
-    }
-}
-
-class EmbeddingRet extends tf.layers.Layer {
-    constructor(...args) {
-        super(...args);
-        this.embedding_object = tf.layers.embedding(...args);
-    }
-
-    computeOutputShape(input_shape) {
-        return [
-            this.embedding_object.computeOutputShape(input_shape),
-            (this.inputDim, this.outputDim)
-        ]
-    }
-
-    computeMask(inputs, mask=null) {
-        return [
-            this.embedding_object.computeMask(inputs, mask),
-            null
-        ]
-    }
-
-    call(inputs) {
-        return [
-            this.embedding_object.call(inputs),
-            tf.tensor(this.embedding_object.embeddings.arraySync())
-        ]
-    }
-
-    apply(...args) {
-        return this.embedding_object.apply(...args);
-    }
-
-    countParams(...args) {
-        return this.embedding_object.countParams(...args);
-    }
-
-    build(...args) {
-        return this.embedding_object.build(...args);
-    }
-
-    getWeights(...args) {
-        return this.embedding_object.getWeights(...args);
-    }
-
-    setWeights(...args) {
-        return this.embedding_object.setWeights(...args);
-    }
-
-    addWeight(...args) {
-        return this.embedding_object.addWeight(...args);
-    }
-
-    addLoss(...args) {
-        return this.embedding_object.addLoss(...args);
-    }
-
-    getConfig(...args) {
-        return this.embedding_object.getConfig(...args);
-    }
-
-    dispose(...args) {
-        return this.embedding_object.dispose(...args);
     }
 }
 

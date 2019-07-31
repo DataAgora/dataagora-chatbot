@@ -3,64 +3,64 @@ var tf = require('@tensorflow/tfjs-node');
 class EmbeddingRet extends tf.layers.Layer {
     constructor(...args) {
         super(...args);
-        this.embedding_object = tf.layers.embedding(...args);
+        this.embeddingObject = tf.layers.embedding(...args);
     }
 
-    computeOutputShape(input_shape) {
+    computeOutputShape(inputShape) {
         return [
-            this.embedding_object.computeOutputShape(input_shape),
+            this.embeddingObject.computeOutputShape(inputShape),
             (this.inputDim, this.outputDim)
         ]
     }
 
     computeMask(inputs, mask=null) {
         return [
-            this.embedding_object.computeMask(inputs, mask),
+            this.embeddingObject.computeMask(inputs, mask),
             null
         ]
     }
 
     call(inputs) {
         return [
-            this.embedding_object.call(inputs),
-            tf.tensor(this.embedding_object.embeddings.arraySync())
+            this.embeddingObject.call(inputs),
+            tf.tensor(this.embeddingObject.embeddings.arraySync())
         ]
     }
 
     apply(...args) {
-        return this.embedding_object.apply(...args);
+        return this.embeddingObject.apply(...args);
     }
 
     countParams(...args) {
-        return this.embedding_object.countParams(...args);
+        return this.embeddingObject.countParams(...args);
     }
 
     build(...args) {
-        return this.embedding_object.build(...args);
+        return this.embeddingObject.build(...args);
     }
 
     getWeights(...args) {
-        return this.embedding_object.getWeights(...args);
+        return this.embeddingObject.getWeights(...args);
     }
 
     setWeights(...args) {
-        return this.embedding_object.setWeights(...args);
+        return this.embeddingObject.setWeights(...args);
     }
 
     addWeight(...args) {
-        return this.embedding_object.addWeight(...args);
+        return this.embeddingObject.addWeight(...args);
     }
 
     addLoss(...args) {
-        return this.embedding_object.addLoss(...args);
+        return this.embeddingObject.addLoss(...args);
     }
 
     getConfig(...args) {
-        return this.embedding_object.getConfig(...args);
+        return this.embeddingObject.getConfig(...args);
     }
 
     dispose(...args) {
-        return this.embedding_object.dispose(...args);
+        return this.embeddingObject.dispose(...args);
     }
 }
 
