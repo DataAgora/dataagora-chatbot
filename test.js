@@ -28,14 +28,17 @@ console.log("Y", y)
 
 async function loadModel () {
     console.log("Loading model...")
-    const handler = tfnode.io.fileSystem('model/model.json');
+    var model_json = fs.readFileSync('model_json/model.json')
+    console.log(JSON.parse(model_json).modelTopology.model_config.config.layers);
+
+    const new_model = tf.loadLayersModel(JSON.parse(model_json));
+    const handler = tfnode.io.fileSystem('model_json/model.json');
     const model = await tf.loadLayersModel(handler);
     console.log(model.layers[1].batchInputShape)
-    var model_json = fs.readFileSync('model/model.json')
     var optimization_data = JSON.parse(model_json)['modelTopology']['training_config']
     //optimizer_config['loss'] = 'softmaxCrossEntropy'
     optimization_data['loss'] = 'categoricalCrossentropy'
-
+    console.log(sampleBatch[0][0])
     sampleBatch[0] = tf.tensor(sampleBatch[0])
     sampleBatch[1] = tf.tensor(sampleBatch[1])
     //var my_model = new Model();
@@ -43,7 +46,8 @@ async function loadModel () {
     
     await _compileModel(model, optimization_data)
     console.log("Training start...")
-    await model.fit(sampleBatch, tf.tensor(y), {batchSize:2})
+    //await model.fit(sampleBatch, tf.tensor(y), {batchSize:2})
+    var result = await model.predict(sampleBatch)
     console.log("Training Complete!")
     // console.log(model)
 }
