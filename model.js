@@ -96,8 +96,7 @@ function getEncoderComponent(name, inputLayer, headNum, hiddenDim, attentionActi
             feedForwardActivation,
             trainable
         ),
-        trainable,
-        true
+        trainable
     );
 
     // var feedForwardLayer = new FeedForward(
@@ -116,7 +115,7 @@ function getEncoderComponent(name, inputLayer, headNum, hiddenDim, attentionActi
     return feedForwardLayer;
 }
 
-function wrapLayer(name, inputLayer, buildFunc, trainable=true, fake=false) {
+function wrapLayer(name, inputLayer, buildFunc, trainable=true) {
     var normalLayer = new LayerNormalization(
         undefined,
         undefined, 
@@ -137,13 +136,7 @@ function wrapLayer(name, inputLayer, buildFunc, trainable=true, fake=false) {
 
     
     var addLayer = tf.layers.add({name:name.concat('-Add')});
-    if (fake) {
-        console.log("SANITY");
-        addLayer.call = function(inputs) {
-            console.log(inputs)
-            return tf.add(inputs[0], inputs[1]);
-        }
-    }
+    
     return addLayer.apply([inputLayer, buildOutput]);
     
     
