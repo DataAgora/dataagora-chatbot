@@ -1,4 +1,5 @@
 var tf = require('@tensorflow/tfjs-node');
+var assert = require('assert');
 
 class EmbeddingRet extends tf.layers.Layer {
     constructor(...args) {
@@ -9,8 +10,10 @@ class EmbeddingRet extends tf.layers.Layer {
     computeOutputShape(inputShape) {
         return [
             this.embeddingObject.computeOutputShape(inputShape),
-            (this.inputDim, this.outputDim)
+            [this.embeddingObject.inputDim, this.embeddingObject.outputDim]
         ]
+
+        
     }
 
     computeMask(inputs, mask=null) {
@@ -23,13 +26,13 @@ class EmbeddingRet extends tf.layers.Layer {
     call(inputs) {
         return [
             this.embeddingObject.call(inputs),
-            tf.tensor(this.embeddingObject.embeddings.arraySync())
+            tf.tensor(this.embeddingObject.embeddings.val.arraySync())
         ]
     }
 
-    apply(...args) {
-        return this.embeddingObject.apply(...args);
-    }
+    // apply(...args) {
+    //     return this.embeddingObject.apply(...args);
+    // }
 
     countParams(...args) {
         return this.embeddingObject.countParams(...args);

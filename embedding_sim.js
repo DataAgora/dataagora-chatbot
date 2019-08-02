@@ -1,4 +1,5 @@
 var tf = require('@tensorflow/tfjs-node');
+var biasAdd = require('./utils').biasAdd;
 
 class EmbeddingSim extends tf.layers.Layer {
 
@@ -10,6 +11,7 @@ class EmbeddingSim extends tf.layers.Layer {
         this.regularizer = regularizer;
         this.constraint = constraint;
         this.stopGradient = stopGradient
+        this.bias = null;
     }
 
     getConfig() {
@@ -32,8 +34,6 @@ class EmbeddingSim extends tf.layers.Layer {
                 (tokenNum),
                 undefined,
                 this.initializer,
-                this.regularizer,
-                this.constraint
             )
         }
         super.build(inputShape);
@@ -53,10 +53,31 @@ class EmbeddingSim extends tf.layers.Layer {
         return mask[0];
     }
 
+    dot(x, y) {
+        var newArr = [];
+        x = x.arraySync();
+        y = y.arraySync();
+        for (var i = 0; i < x.length; i++) {
+            // console.log("HEY", i);
+            newArr.push(tf.dot(x[i], y));
+        }
+        var newTensor = tf.tensor(newArr)
+        //console.log("FINISHED");
+        return newTensor;
+    }
+
     call(inputs, mask=null, ...args) {
         var embeddings = inputs[1];
         inputs = inputs[0];
-        var outputs = tf.dot(inputs, tf.transpose(embeddings));
+        // console.log(embeddings)
+        // console.log(inputs)
+        // console.log(1)
+        var outputs = this.dot(inputs, tf.transpose(embeddings));
+        // console.log(2);
+        if (this.useBias) {
+            outputs = biasAdd(outputs, this.bias);
+        }
+        // console.log("MADE IT HERE");
         return tf.layers.softmax(outputs)
     }
 }

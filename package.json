@@ -18,6 +18,7 @@
   "homepage": "https://github.com/neeleshdodda44/dataagora-chatbot#readme",
   "dependencies": {
     "@tensorflow/tfjs": "^1.2.5",
+    "longjohn": "^0.2.12",
     "lru-cache": "^5.1.1"
   }
 }

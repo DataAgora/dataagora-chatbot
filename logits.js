@@ -1,17 +1,17 @@
 var tf = require('@tensorflow/tfjs');
 var assert = require('assert');
 
-split_heads(x) {
+function split_heads(x) {
     // From [batch, sequence, features] to [batch, heads, sequence, features]
     return tf.transpose(this.split_states(x, hparams.n_head), [0, 2, 1, 3])
 }
 
-merge_heads(x) {
+function merge_heads(x) {
     // Reverse of split_heads
     return this.merge_states(tf.transpose(x, [0, 2, 1, 3]))
 }
 
-mask_attn_weights(w) {
+function mask_attn_weights(w) {
     // w has shape [batch, heads, dst_sequence, src_sequence], where information flows from src to dst.
     var arr = this.shape_list(w);
     var nd = arr[arr.length - 2];
@@ -22,7 +22,7 @@ mask_attn_weights(w) {
     return w
 }
 
-multihead_attn (q, k, v) {
+function multihead_attn (q, k, v) {
     // q, k, v have shape [batch, heads, sequence, features]
     var w = tf.matMul(q, k, transpose_b=true)
     w = tf.mul(w, tf.rsqrt(tf.cast(v.shape[-1].value, w.dtype)))

@@ -71,11 +71,13 @@ class PositionEmbedding extends tf.layers.Layer {
         } else if (this.mode == PositionEmbedding.MODE_CONCAT) {
             return inputShape.slice(0, inputShape.length - 1).concat([inputShape[inputShape.length - 1] + this.outputDim]);
         } else {
+            //console.log(inputShape, "rip")
             return inputShape;
         }
     }
 
     call(inputs, ...args) {
+        //console.log(inputs, "hey")
         if (this.mode == PositionEmbedding.MODE_EXPAND) {
             if (inputs.dtype != 'int32') {
                 inputs = tf.cast(inputs, "int32");
@@ -108,7 +110,7 @@ class PositionEmbedding extends tf.layers.Layer {
             tf.expandDims(tempEmbeddings, 0),
             [batchSize, 1, 1]
         )
-
+        //console.log("HELLO")
         if (this.mode == PositionEmbedding.MODE_ADD) {
             return inputs.concat(posEmbeddings);
         } else {
