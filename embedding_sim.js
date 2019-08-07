@@ -1,7 +1,9 @@
-var tf = require('@tensorflow/tfjs-node');
-var biasAdd = require('./utils').biasAdd;
+// var tf = require('@tensorflow/tfjs-node');
+// var biasAdd = require('./utils').biasAdd;
 
-class EmbeddingSim extends tf.layers.Layer {
+import {biasAdd, dot} from './utils.js'
+
+export class EmbeddingSim extends tf.layers.Layer {
 
     constructor(useBias=false, initializer=tf.initializers.zeros, regularizer=null, constraint=null, stopGradient=false, ...args) {
         super(...args);
@@ -53,35 +55,35 @@ class EmbeddingSim extends tf.layers.Layer {
         return mask[0];
     }
 
-    dot(x, y) {
-        var newArr = [];
-        x = x.arraySync();
-        y = y.arraySync();
-        for (var i = 0; i < x.length; i++) {
-            // console.log("HEY", i);
-            newArr.push(tf.dot(x[i], y));
-        }
-        var newTensor = tf.tensor(newArr)
-        //console.log("FINISHED");
-        return newTensor;
-    }
-
     call(inputs, mask=null, ...args) {
+        console.log("sanity");
         var embeddings = inputs[1];
         inputs = inputs[0];
+        // console.log("INPUTS", inputs.arraySync());
+        // console.log("EMBEDDINGS", embeddings.arraySync())
+
         // console.log(embeddings)
         // console.log(inputs)
-        // console.log(1)
-        var outputs = this.dot(inputs, tf.transpose(embeddings));
-        // console.log(2);
+        console.log(1)
+        var outputs = dot(inputs, tf.transpose(embeddings));
+        console.log(2, outputs.shape);
         if (this.useBias) {
             outputs = biasAdd(outputs, this.bias);
         }
-        // console.log("MADE IT HERE");
-        return tf.layers.softmax(outputs)
+        console.log(3);
+        return tf.softmax(outputs);
+        //console.log("AYEE")
+        // var output_arr = tf.split(outputs, 2);
+        // console.log("3");
+        // var new_output_arr = [];
+        // output_arr.forEach(element => {
+        //     new_output_arr.push(tf.softmax(element));
+        // });
+        // console.log("4");
+        // return tf.concat(new_output_arr)
     }
 }
 
-module.exports = {
-    EmbeddingSim: EmbeddingSim
-}
+// module.exports = {
+//     EmbeddingSim: EmbeddingSim
+// }

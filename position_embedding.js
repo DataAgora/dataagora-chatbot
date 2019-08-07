@@ -1,6 +1,6 @@
-var tf = require('@tensorflow/tfjs-node');
+// var tf = require('@tensorflow/tfjs-node');
 
-class PositionEmbedding extends tf.layers.Layer {
+export class PositionEmbedding extends tf.layers.Layer {
     static MODE_EXPAND = 'expand';
     static MODE_ADD = 'add';
     static MODE_CONCAT = 'concat';
@@ -119,6 +119,6 @@ class PositionEmbedding extends tf.layers.Layer {
     }
 }
 
-module.exports = {
-    PositionEmbedding: PositionEmbedding
-}
+// module.exports = {
+//     PositionEmbedding: PositionEmbedding
+// }

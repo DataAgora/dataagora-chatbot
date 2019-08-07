@@ -1,8 +1,10 @@
-var tf = require('@tensorflow/tfjs-node');
-var assert = require('assert');
-var biasAdd = require('./utils').biasAdd;
+// var tf = require('@tensorflow/tfjs-node');
+// var assert = require('assert');
+// var biasAdd = require('./utils').biasAdd;
 
-class FeedForward extends tf.layers.Layer {
+import {biasAdd, dot} from './utils.js';
+
+export class FeedForward extends tf.layers.Layer {
 
     constructor(units, activation=tf.relu, useBias=true, kernelInitializer=tf.initializers.glorotNormal(),
     biasInitializer=tf.initializers.zeros(), kernelConstraint=null, biasRegularizer=null, biasConstraint=null, 
@@ -79,45 +81,48 @@ class FeedForward extends tf.layers.Layer {
             newArr.push(tf.dot(x[i], y).arraySync());
         }
         var newTensor = tf.tensor(newArr)
-        //console.log("FINISHED");
+        ////console.log("FINISHED");
         return newTensor;
     }
 
     call(x, mask=null, training=null) {
-        console.log(x);
+        //console.log("x", x[0].arraySync());
         x = x[0];
-        console.log(this.W1.val)
-        var h = this.dot(x, this.W1.val);
+        ////console.log(this.W1.val.shape)
+        var h = dot(x, this.W1.val);
+        ////console.log(h.shape);
 
         if (this.useBias) {
-            console.log("hey", h.shape, this.b1.val.shape);
+            //console.log("hey", h.shape, this.b1.val.shape);
             // assert(false);
             h = biasAdd(h, this.b1.val);
         }
-
+    
+        //console.log("w2", this.W2.val.arraySync());
+        //console.log("b2", this.b2.val.arraySync())
         if (this.activation != null) {
             h = this.activation(h);
         }
-
+        //console.log("h", h.arraySync());
         if (0.0 < this.dropoutRate < 1.0) {
             function droppedInputs() {
                 return tf.dropout(h, this.dropoutRate, h.shape);
             }
         }
 
-        var y = this.dot(h, this.W2.val);
+        var y = dot(h, this.W2.val);
 
         if (this.useBias) {
-            console.log("hey", y.shape, this.b2.val.shape);
+            ////console.log("hey", y.shape, this.b2.val.shape);
             y = biasAdd(y, this.b2.val);
         }
-
-        console.log(y);
+        //return tf.initializers.ones().apply([2, 1024, 768]);
+        //console.log("y", y.arraySync());
         return y;
 
     }
 }
 
-module.exports = {
-    FeedForward:FeedForward
-}
+// module.exports = {
+//     FeedForward:FeedForward
+// }

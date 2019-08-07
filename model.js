@@ -1,14 +1,26 @@
-var tf = require("@tensorflow/tfjs-node");
-var fs = require('fs');
-var Sampler = require('./sampler').Sampler;
-require('longjohn');
+// var tf = require("@tensorflow/tfjs-node");
+// var fs = require('fs');
+// var Sampler = require('./sampler').Sampler;
+// var longjohn = require('longjohn');
 
-var EmbeddingRet = require('./embedding_ret').EmbeddingRet;
-var PositionEmbedding = require('./position_embedding').PositionEmbedding;
-var MultiHeadAttention = require('./multi_head_attention').MultiHeadAttention;
-var FeedForward = require('./feed_forward').FeedForward;
-var LayerNormalization = require('./layer_normalization').LayerNormalization;
-var EmbeddingSim = require('./embedding_sim').EmbeddingSim;
+// var EmbeddingRet = require('./embedding_ret').EmbeddingRet;
+// var PositionEmbedding = require('./position_embedding').PositionEmbedding;
+// var MultiHeadAttention = require('./multi_head_attention').MultiHeadAttention;
+// var FeedForward = require('./feed_forward').FeedForward;
+// var LayerNormalization = require('./layer_normalization').LayerNormalization;
+// var DummyLayer = require('./dummy_layer').DummyLayer;
+
+// var EmbeddingSim = require('./embedding_sim').EmbeddingSim;
+
+import {EmbeddingRet} from './embedding_ret.js';
+import {PositionEmbedding} from './position_embedding.js';
+import {MultiHeadAttention} from './multi_head_attention.js';
+import {FeedForward} from './feed_forward.js';
+import {LayerNormalization} from './layer_normalization.js';
+import {EmbeddingSim} from './embedding_sim.js'
+import {Sampler} from './sampler.js';
+import {gelu} from './utils.js';
+import {get_encoder} from './encoder.js';
 
 function getModel(n_vocab=50257, n_ctx=1024, n_embd=768, n_head=12, n_layer=12, batch_size=null, fixed_input_shape=false) {
 
@@ -21,6 +33,9 @@ function getModel(n_vocab=50257, n_ctx=1024, n_embd=768, n_head=12, n_layer=12, 
         name:'Embed-Token'
     }).apply(inputLayer);
 
+    var embedToken = embeddingRet[0];
+    var embeddings = embeddingRet[1];
+
     var positionEmbedding = new PositionEmbedding(
         n_ctx,
         n_embd,
@@ -31,40 +46,44 @@ function getModel(n_vocab=50257, n_ctx=1024, n_embd=768, n_head=12, n_layer=12, 
         undefined,
         undefined,
         {name:'Embed-Token-Pos'}
-    ).apply(embeddingRet[0]);
+    ).apply(embedToken);
 
-    var lastLayer = getEncoderComponent(
-        'Encode-1',
-        positionEmbedding,
-        n_head,
-        n_embd*4,
-        null,
-        gelu,
-    )
+    var lastLayer = positionEmbedding
+    
+    for (var i = 0; i < 1; i++) {
+        lastLayer = getEncoderComponent(
+            'Encode-'.concat([i + ""]),
+            lastLayer,
+            n_head,
+            n_embd*4,
+            null,
+            gelu,
+        )
+    }
 
-    // var normLayer = new LayerNormalization(
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     {name:'Norm'}
-    // ).apply(lastLayer)
+    var normLayer = new LayerNormalization(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {name:'Norm'}
+    ).apply(lastLayer)
 
-    // var outputLayer = new EmbeddingSim(
-    //     false,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     {name:'Output'}
-    // ).apply([normLayer, embeddingRet[1]])
+    var outputLayer = new EmbeddingSim(
+        false,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {name:'Output'}
+    ).apply([normLayer, embeddings])
 
-    const model = tf.model({inputs:inputLayer, outputs:lastLayer});
+    const model = tf.model({inputs:inputLayer, outputs:outputLayer});
     return model;
 }
 
@@ -73,49 +92,6 @@ function getEncoderComponent(name, inputLayer, headNum, hiddenDim, attentionActi
     var attentionName = name.concat('-MultiHeadAtt');
     var feedForwardName = name.concat('-FeedForward');
 
-    //console.log(inputLayer, "myinp[ut");
-    var attentionLayer = wrapLayer(
-        attentionName,
-        inputLayer,
-        attentionBuilder(
-            attentionName,
-            headNum,
-            attentionActivation,
-            true,
-            trainable
-        ),
-        trainable
-    );
-
-    var feedForwardLayer = wrapLayer(
-        feedForwardName,
-        attentionLayer,
-        feedForwardBuilder(
-            feedForwardName,
-            hiddenDim,
-            feedForwardActivation,
-            trainable
-        ),
-        trainable
-    );
-
-    // var feedForwardLayer = new FeedForward(
-    //     hiddenDim,
-    //     feedForwardActivation,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     undefined,
-    //     {name:name, trainable:trainable}
-    // ).apply(attentionLayer);
-
-    return feedForwardLayer;
-}
-
-function wrapLayer(name, inputLayer, buildFunc, trainable=true) {
     var normalLayer = new LayerNormalization(
         undefined,
         undefined, 
@@ -126,94 +102,83 @@ function wrapLayer(name, inputLayer, buildFunc, trainable=true) {
         undefined,
         undefined,
         undefined,
-        {trainable:trainable, name:name.concat('-Norm')}
+        {trainable:trainable, name:name.concat('-Norm1')}
     ).apply(inputLayer);
 
-    //console.log(inputLayer, "input");
-    //console.log(normalLayer, "normal")
-    var buildOutput = buildFunc(normalLayer);
+    var attentionLayer = new MultiHeadAttention(
+        headNum,
+        attentionActivation,
+        true,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {name:name.concat('-atten'), trainable:trainable}
+    ).apply(normalLayer);
 
+    var addLayer = tf.layers.add({name:name.concat('-Add1')});
+
+    var lastoLayer = addLayer.apply([inputLayer, attentionLayer]);
+
+    normalLayer = new LayerNormalization(
+        undefined,
+        undefined, 
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {trainable:trainable, name:name.concat('-Norm2')}
+    ).apply(lastoLayer);
+
+    var feedForwardLayer = new FeedForward(
+        hiddenDim,
+        feedForwardActivation,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        {name:name.concat('-feed'), trainable:trainable}
+    ).apply(normalLayer);
 
     
-    var addLayer = tf.layers.add({name:name.concat('-Add')});
-    
-    return addLayer.apply([inputLayer, buildOutput]);
-    
-    
+
+    addLayer = tf.layers.add({name:name.concat('-Add2')});
+
+    return feedForwardLayer;
 }
 
-function attentionBuilder(name, headNum, activation, historyOnly, trainable=true) {
+async function forwardPass(text) {
+    // var model = getModel();
+    var encoder = await get_encoder();
+    console.log(encoder)
+    var encodings = encoder.encode("Hi, my name is Bill. What's your name?");
+    console.log(encodings);
+    console.log(encoder.decode(encodings))
+    // var chunks = data;
 
-    function attentionBuilderHelper(x) {
-        return new MultiHeadAttention(
-            headNum,
-            activation,
-            historyOnly,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            {name:name, trainable:trainable}
-        ).apply(x);
-    }
+    // var dataSampler = new Sampler(chunks);
 
-    return attentionBuilderHelper;
+    // var sampleBatch = dataSampler.sampleBatch(1);
+
+    // var x  = sampleBatch;
+
+    // console.log(sampleBatch)
+
+    // console.log(model)
+
+    // var result = model.predict(tf.tensor(x));
+
+    // var array = result.dataSync();
+
+    // console.log(array);
 }
 
-function feedForwardBuilder(name, hiddenDim, activation, trainable=true) {
-
-    function feedForwardBuilderHelper(x) {
-        return new FeedForward(
-            hiddenDim,
-            activation,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            {name:name, trainable:trainable}
-        ).apply(x);
-    }
-
-    return feedForwardBuilderHelper;
-
-}
-
-function gelu(x) {
-    return tf.mul(
-        tf.mul(0.5, x), tf.add(
-            1.0, tf.tanh(
-                tf.mul(
-                    Math.sqrt(2.0/Math.pi), tf.add(
-                        x, tf.mul(
-                            0.044715, tf.mul(
-                                x, tf.mul(x, x)
-                            )
-                        )
-                    )
-                )
-            )
-        )
-    )
-}
-
-model = getModel();
-
-
-var chunks = JSON.parse(fs.readFileSync("output.txt", "utf-8"));
-
-var dataSampler = new Sampler(chunks);
-
-var sampleBatch = dataSampler.sampleBatch(2);
-
-var x  = sampleBatch;
-
-var y = [sampleBatch[0].slice(1), sampleBatch[0].slice(1)];
-
-console.log(model)
-
-console.log(model.predict(tf.tensor(x)));
+forwardPass();

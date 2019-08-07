@@ -1,25 +1,29 @@
-var fetch = require('node-fetch');
-var fs = require('fs');
-var LRU = require("lru-cache")
+// var fetch = require('node-fetch');
+// var fs = require('fs');
+// var LRU = require("lru-cache")
 
-function bytes_to_unicode() {
-    var bs = range("!".charCodeAt(0), "~".charCodeAt(0) + 1).concat(range("¡".charCodeAt(0), "¬".charCodeAt(0) + 1), range("®".charCodeAt(0), "ÿ".charCodeAt(0) + 1));
-    var cs = range("!".charCodeAt(0), "~".charCodeAt(0) + 1).concat(range("¡".charCodeAt(0), "¬".charCodeAt(0) + 1), range("®".charCodeAt(0), "ÿ".charCodeAt(0) + 1));
+function init_byte_encoder() {
+    var codes = range("!".charCodeAt(0), "~".charCodeAt(0) + 1).concat(range("¡".charCodeAt(0), "¬".charCodeAt(0) + 1), range("®".charCodeAt(0), "ÿ".charCodeAt(0) + 1));
+
+    var byte_encoder = {};
+    codes.forEach(code => {
+        byte_encoder[code] = String.fromCharCode(code);
+    });
+    // var cs = range("!".charCodeAt(0), "~".charCodeAt(0) + 1).concat(range("¡".charCodeAt(0), "¬".charCodeAt(0) + 1), range("®".charCodeAt(0), "ÿ".charCodeAt(0) + 1));
     
-    n = 0
-    for (var b = 0; b < 256; b++) {
-        if (!(bs.includes(b))){
-            bs.push(b)
-            cs.push(256+n)
-            n += 1
+    var shift = 0
+    for (var code = 0; code < 256; code++) {
+        if (!(code in byte_encoder)){
+            byte_encoder[code] = String.fromCharCode(256 + shift)[0];
+            shift += 1
         } 
     }
-    new_cs = []
-    for (var i = 0; i < cs.length; i++) {
-        new_cs.push(String.fromCharCode(cs[i]));
-    }
-    var zipped = zip(bs, new_cs);
-    return dict(zipped);
+    
+    return byte_encoder;
+}
+
+function enumerate(list) {
+    return zip(range(0, list.length), list);
 }
     
 function range(start, finish) {
@@ -34,7 +38,7 @@ function zip(arr1, arr2) {
 }
 
 function dict(array) {
-    dictionary = {};
+    var dictionary = {};
     array.forEach(tuple => {
         dictionary[tuple[0]] = tuple[1];
     })
@@ -49,8 +53,12 @@ function swap(json){
     return ret;
 }
 
+function strip(str) {
+    return str.replace(/^\s+|\s+$/g, '');
+}
+
 function get_pairs(word) {
-    pairs = new Set([]);
+    var pairs = new Set([]);
     var prev_char = word[0]
     for (var i = 1; i < word.length; i++) {
         pairs.add((prev_char, word[i]));
@@ -59,29 +67,21 @@ function get_pairs(word) {
     return pairs
 }
 
-function cache_get(cache, key) {
-    var value = cache.get(key);
-    if (typeof(value) === undefined) {
-        value = this.bytes_encoder[key]
-        this.cache.set(key, value)
-    }
-    return value
+function arraysEqual(a1,a2) {
+    /* WARNING: arrays must not contain {objects} or behavior may be undefined */
+    return JSON.stringify(a1)==JSON.stringify(a2);
 }
 
 class Encoder {
-    constructor(encoder, bpe_merges) {
-        this.encoder = encoder;
-        //console.log(encoder)
-        this.decoder = swap(encoder);
-        this.errors = 'replace';
-        this.bytes_encoder = bytes_to_unicode();
-        this.bytes_decoder = swap(this.bytes_encoder);
-        this.bytes_cache1 = new LRU(128);
-        this.bytes_cache2 = new LRU(128);
-        this.bpe_ranks = dict(zip(bpe_merges, range(0, bpe_merges.length)));
+    constructor(token_dict, bpe_rank) {
+        this.token_dict = token_dict;
+        this.token_dict_inv = swap(token_dict);
+        this.bpe_rank = bpe_rank;
+        this.byte_encoder = init_byte_encoder()
+        this.byte_decoder = swap(this.byte_encoder);
         this.cache = {};
 
-        this.pat = /'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+/g;
+        this.token_pattern = /\w+|[;.,!?:]|\'\w+/g
     }
 
     bpe(token) {
@@ -89,89 +89,92 @@ class Encoder {
             return this.cache[token];
         }
 
-        var word = token.split("");
-        var pairs = get_pairs(word)
+        var chars = token.split("");
+        //var pairs = get_pairs(word)
 
-        if (pairs.size == 0) {
-            return token;
-        }
+        // if (pairs.size == 0) {
+        //     return token;
+        // }
+        var bpe_rank = this.bpe_rank;
+        while (chars.length > 0) {
+            var min_pair = null;
+            var min_rank = Infinity;
 
-        var bpe_ranks = this.bpe_ranks
-        pairs = Array.from(pairs);
-        while (true) {
-            var bigram = pairs.filter(function(pair) {
-                return pair in bpe_ranks;
-            }).map(function (pair) {
-                return (pair, bpe_ranks[pair])
+            var range_arr = range(1, chars.length);
+
+            range_arr.forEach(i => {
+                var pair = [chars[i - 1], chars[i]];
+                var rank = bpe_rank[pair] || Infinity;
+                if (rank < min_rank) {
+                    min_rank = rank;
+                    min_pair = pair;
+                }
             });
 
-            if (bigram.length == 0) {
+            if (min_pair == null || !(min_pair in bpe_rank)) {
                 break;
-            } 
-            bigram = bigram.reduce(function (pair1, pair2) {
-                return (pair1[1] < pair2[1]) ? pair1[0] : pair2[0];
+            }
+
+            var last = chars[0];
+            var tail = 1;
+
+            range_arr.forEach(index => {
+                if (arraysEqual([last, chars[index]], min_pair)) {
+                    chars[tail - 1] = last + chars[index];
+                    last = last + chars[index];
+                } else {
+                    chars[tail - 1] = last;
+                    tail++;
+                    last = chars[index];
+                }
             });
-
-            if (!(bigram in bpe_ranks)) {
-                break;
-            }
-
-            var first = bigram[0];
-            var second = bigram[1];
-
-            new_word = [];
-            var i = 0;
-            while (i < word.length) {
-                var j = word.indexOf(first);
-                if (j == -1) {
-                    new_word.concat(word.substring(i).split(""));
-                    break;
-                } else {
-                    new_word.concat(word.substring(i, j).split(""));
-                    i = j;
-                }
-
-                if (word.charAt(i) == first && i < word.length - 1 && word.charAt(i + 1) == second) {
-                    new_word.push(first.concat(second));
-                    i += 2;
-                } else {
-                    new_word.push(word.charAt(i));
-                    i += 1;
-                }
-            }
-
-            word = new_word;
-            if (word.length == 1) {
-                break;
-            } else {
-                pairs = get_pairs(word);
-            }
+            chars[tail - 1] = last;
+            chars = chars.slice(0, tail);
         }
-
-        word = word.join(" ");
-        this.cache[token] = word;
-        return word;
+        
+        chars = [chars.join('')]
+        this.cache[token] = chars;
+        return chars;
     }  
 
     encode(text) {
+        console.log(text.match(this.token_pattern));
         var bpe_tokens = [];
-        var cache = this.bytes_cache1;
-        //console.log(bytes_encoder)
-        var encoder = this.encoder;
+        //console.log(bytes_token_dict)
+        var byte_encoder = this.byte_encoder;
+        
+        var token_dict = this.token_dict;
         var num = 0;
-        text.match(this.pat).forEach(element => {
-            if (num % 10000 == 0) {
-                console.log(num)
-            }
-            var token = this.encode_utf8(element).split().map(function(char) {
-                return cache_get(cache, char.charCodeAt(0));
-            }).join('');
-            bpe_tokens = bpe_tokens.concat(this.bpe(token).split(' ').map(element => {
-                return encoder[element];
-            }));
-            num += 1;
-        });
-        console.log("BPE TOKENS", bpe_tokens.length)
+        var temp = [];
+        temp = text.split(' ');
+        temp.forEach(text => {
+            var space;
+            var i = 0;
+            text.match(this.token_pattern).forEach(token => {
+                if (num != 0 && i == 0) {
+                    token = ' ' + token;
+                }
+                token = this.encode_utf8(token).split('').map(function(char) {
+                    //console.log(char)
+                    return byte_encoder[char.charCodeAt(0)];
+                }).join('');
+                console.log(token, "TOKEN")
+                bpe_tokens = bpe_tokens.concat(this.bpe(token).map(token=> {
+                    return token_dict[token];
+                }));
+                num += 1;
+                i++;
+            })
+            i = 0;
+        })
+        
+        // text.split(this.token_pattern).forEach(token => {
+        //     if (num % 10000 == 0) {
+        //         console.log(num)
+                
+        //     }
+            
+        // });
         return bpe_tokens;
     }
 
@@ -184,15 +187,16 @@ class Encoder {
     }
 
     decode(tokens) {
-        var cache = this.cache2_get;
-        var decoder = this.decoder
-        text = tokens.map(element => {
-            return decoder[String.fromCharCode(element)];
+        var token_dict_inv = this.token_dict_inv
+        var byte_decoder = this.byte_decoder
+        var text = tokens.map(token => {
+            return token_dict_inv[token];
         }).join('');
 
-        text = text.split('').map(element => {
-            return cache(c);
-        })
+        text = text.split('').map(byte => {
+            console.log(byte)
+            return String.fromCharCode(byte_decoder[byte]);
+        }).join('');
         
         return this.decode_utf8(text);
     }
@@ -207,21 +211,27 @@ class Encoder {
     }
 }
 
-function get_encoder() {
-    var encoder_json = JSON.parse(fs.readFileSync('encoder.json', 'utf8'));
-    var vocab_bpe = fs.readFileSync('vocab.bpe', 'utf8');
-    var bpe_merges = [];
+export async function get_encoder() {
+    var encoder_json = await fetch('http://localhost:8000/encoder.json');
+    encoder_json = await encoder_json.json();
+    var vocab_bpe = await fetch('http://localhost:8000/vocab.bpe');
+    vocab_bpe = await vocab_bpe.text();
+    var bpe_rank = {}
     var temp_arr = vocab_bpe.split('\n')
-    temp_arr = temp_arr.slice(1, temp_arr.length - 1);
     for (var i = 0; i < temp_arr.length; i++) {
-        bpe_merges.push(temp_arr[i].split(' '))
+        var line = temp_arr[i];
+        line = strip(line);
+        if (line.length > 0) {
+
+        }
+        bpe_rank[line.split()] = i;
     }
-    return new Encoder(encoder_json, bpe_merges);
+    return new Encoder(encoder_json, bpe_rank);
 }
 
-module.exports = {
-    get_encoder: get_encoder,
-    Encoder: Encoder
-};
+// module.exports = {
+//     get_encoder: get_encoder,
+//     Encoder: Encoder
+// };
 
     

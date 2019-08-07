@@ -1,6 +1,6 @@
-var tf = require('@tensorflow/tfjs-node');
+// var tf = require('@tensorflow/tfjs-node');
 
-class LayerNormalization extends tf.layers.Layer {
+export class LayerNormalization extends tf.layers.Layer {
     constructor (center=true, scale=true, gammaInitializer=tf.initializers.ones(), epsilon=null,
         betaInitializer=tf.initializers.zeros(), gammaRegularizer=null, betaRegularizer=null,
         gammaConstraint=null, betaConstraint=null, ...args) {
@@ -25,7 +25,7 @@ class LayerNormalization extends tf.layers.Layer {
     }
 
     computeOutputShape(inputShape) {
-        //console.log(inputShape, "HULLO")
+        ////console.log(inputShape, "HULLO")
         return inputShape;
     }
 
@@ -55,25 +55,29 @@ class LayerNormalization extends tf.layers.Layer {
     }
 
     call(inputs, training=null) {
-        console.log("inputs", inputs);
-        //console.log(inputs, "yeet")
+        //console.log("inputs", inputs);
+        ////console.log(inputs, "yeet")
         inputs = inputs[0];
         var mean = tf.mean(inputs, inputs.shape.length-1, true);
         var variance = tf.mean(tf.square(tf.sub(inputs, mean)), inputs.shape.length - 1, true);
         var std = tf.sqrt(tf.add(variance, this.epsilon));
         var outputs = tf.div(tf.sub(inputs, mean), std);
         if (this.scale) {
+            //console.log("gamma", this.gamma.val)
             outputs = tf.mul(outputs, this.gamma.val);
         }
+        //console.log(outputs, "outputs")
         if (this.center) {
+            //console.log("beta", this.beta.val)
             outputs = tf.add(outputs, this.beta.val)
         }
 
-        console.log("outputs", outputs)
+        //console.log("outputs", outputs.arraySync())
+        //return tf.initializers.ones().apply([2, 1024, 768]);
         return outputs;
     }
 }
 
-module.exports = {
-    LayerNormalization: LayerNormalization
-}
+// module.exports = {
+//     LayerNormalization: LayerNormalization
+// }

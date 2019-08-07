@@ -1,7 +1,8 @@
-var tf = require('@tensorflow/tfjs-node');
-var batchDot = require('./utils').batchDot;
+// var tf = require('@tensorflow/tfjs-node');
+// var batchDot = require('./utils').batchDot;
+import {batchDot, dot} from './utils.js';
 
-class ScaledDotProductAttention extends tf.layers.Layer {
+export class ScaledDotProductAttention extends tf.layers.Layer {
     constructor (returnAttention=false, historyOnly=false, ...args) {
         super(...args);
         this.supportsMasking = true;
@@ -108,6 +109,7 @@ class ScaledDotProductAttention extends tf.layers.Layer {
         //     v.push(tf.dot(a_arr[i], tempValue[i]).arraySync());
         // }
         // v = tf.tensor(v);
+        //console.log("SANITY");
         v = batchDot(a, value, 1);
         //console.log(v)
         if (this.returnAttention) {
@@ -118,6 +120,6 @@ class ScaledDotProductAttention extends tf.layers.Layer {
     }
 }
 
-module.exports = {
-    ScaledDotProductAttention:ScaledDotProductAttention
-}
+// module.exports = {
+//     ScaledDotProductAttention:ScaledDotProductAttention
+// }

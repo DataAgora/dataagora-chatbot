@@ -1,8 +1,10 @@
-var tf = require('@tensorflow/tfjs-node');
-var ScaledDotProductAttention = require('./scaled_dot_product_attention').ScaledDotProductAttention;
-var assert = require('assert');
+// var tf = require('@tensorflow/tfjs-node');
+// var ScaledDotProductAttention = require('./scaled_dot_product_attention').ScaledDotProductAttention;
+// var assert = require('assert');
+import {ScaledDotProductAttention} from './scaled_dot_product_attention.js';
+import {dot} from './utils.js';
 
-class MultiHeadAttention extends tf.layers.Layer {
+export class MultiHeadAttention extends tf.layers.Layer {
     constructor(headNum, activation=tf.relu, historyOnly=false, useBias=true, kernelInitializer=tf.initializers.glorotNormal(),
         biasInitializer=tf.initializers.zeros(), kernelConstraint=null, biasRegularizer=null, biasConstraint=null, ...args){
 
@@ -45,7 +47,7 @@ class MultiHeadAttention extends tf.layers.Layer {
         var featureDim = v[v.length - 1];
 
         //console.log(featureDim, this.headNum);
-        assert (featureDim % this.headNum == 0);
+        console.assert (featureDim % this.headNum == 0);
 
         this.Wq = this.addWeight(
             this.name.concat('_Wq'),
@@ -175,10 +177,10 @@ class MultiHeadAttention extends tf.layers.Layer {
         //console.log(q)
         //console.log("Q", q.shape);
         //console.log("WQ", this.Wq.val.shape);
-        //console.log(this.dot(q, this.Wq.val))
-        q = this.dot(q, this.Wq.val);
-        k = this.dot(k, this.Wk.val);
-        v = this.dot(v, this.Wv.val);
+        //console.log(dot(q, this.Wq.val))
+        q = dot(q, this.Wq.val);
+        k = dot(k, this.Wk.val);
+        v = dot(v, this.Wv.val);
 
         
         if (this.useBias) {
@@ -205,7 +207,7 @@ class MultiHeadAttention extends tf.layers.Layer {
 
         
         y = this.reshapeFromBatches(y, this.headNum);
-        y = this.dot(y, this.Wo.val);
+        y = dot(y, this.Wo.val);
 
         if (this.useBias) {
             y = tf.add(y, this.bo.val);
@@ -230,11 +232,12 @@ class MultiHeadAttention extends tf.layers.Layer {
             y = tf.reshape(y, outputShape);
         }
 
+        //console.log("ATTENTION", y);
         return y;
 
     }
 }
 
-module.exports = {
-    MultiHeadAttention: MultiHeadAttention
-}
+// module.exports = {
+//     MultiHeadAttention: MultiHeadAttention
+// }

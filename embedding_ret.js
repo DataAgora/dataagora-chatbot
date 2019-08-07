@@ -1,7 +1,6 @@
-var tf = require('@tensorflow/tfjs-node');
-var assert = require('assert');
+// var tf = require('@tensorflow/tfjs-node');
 
-class EmbeddingRet extends tf.layers.Layer {
+export class EmbeddingRet extends tf.layers.Layer {
     constructor(...args) {
         super(...args);
         this.embeddingObject = tf.layers.embedding(...args);
@@ -26,7 +25,7 @@ class EmbeddingRet extends tf.layers.Layer {
     call(inputs) {
         return [
             this.embeddingObject.call(inputs),
-            tf.tensor(this.embeddingObject.embeddings.val.arraySync())
+            this.embeddingObject.embeddings.val.clone()
         ]
     }
 
@@ -67,6 +66,6 @@ class EmbeddingRet extends tf.layers.Layer {
     }
 }
 
-module.exports = {
-    EmbeddingRet: EmbeddingRet,
-}
+// module.exports = {
+//     EmbeddingRet: EmbeddingRet,
+// }

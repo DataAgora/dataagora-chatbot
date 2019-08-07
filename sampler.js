@@ -1,4 +1,4 @@
-class Sampler {
+export class Sampler {
     constructor(chunks) {
         this.chunks = chunks;
         this.total_size = chunks[0].length;
@@ -46,6 +46,6 @@ class Sampler {
 
 }
 
-module.exports = {
-    Sampler: Sampler
-}
+// module.exports = {
+//     Sampler: Sampler
+// }
