@@ -5,7 +5,8 @@ export class LayerNormalization extends tf.layers.Layer {
         betaInitializer=tf.initializers.zeros(), gammaRegularizer=null, betaRegularizer=null,
         gammaConstraint=null, betaConstraint=null, ...args) {
 
-            super(...args);
+            super({});
+
 
             this.supports_masking = true;
             this.center = center;
@@ -76,8 +77,12 @@ export class LayerNormalization extends tf.layers.Layer {
         //return tf.initializers.ones().apply([2, 1024, 768]);
         return outputs;
     }
-}
 
+    static get className() {
+        return 'LayerNormalization';
+    }
+}
+tf.serialization.registerClass(LayerNormalization)
 // module.exports = {
 //     LayerNormalization: LayerNormalization
 // }

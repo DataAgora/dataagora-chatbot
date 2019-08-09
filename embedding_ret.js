@@ -64,7 +64,13 @@ export class EmbeddingRet extends tf.layers.Layer {
     dispose(...args) {
         return this.embeddingObject.dispose(...args);
     }
+
+    static get className() {
+        return 'EmbeddingRet';
+    }
 }
+
+tf.serialization.registerClass(EmbeddingRet)
 
 // module.exports = {
 //     EmbeddingRet: EmbeddingRet,

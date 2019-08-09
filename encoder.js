@@ -22,11 +22,11 @@ function init_byte_encoder() {
     return byte_encoder;
 }
 
-function enumerate(list) {
+export function enumerate(list) {
     return zip(range(0, list.length), list);
 }
     
-function range(start, finish) {
+export function range(start, finish) {
     var size = finish - start;
     return [...Array(size).keys()].map(i => i + start);
 }
@@ -138,7 +138,7 @@ class Encoder {
     }  
 
     encode(text) {
-        console.log(text.match(this.token_pattern));
+        //console.log(text.match(this.token_pattern));
         var bpe_tokens = [];
         //console.log(bytes_token_dict)
         var byte_encoder = this.byte_encoder;
@@ -158,7 +158,7 @@ class Encoder {
                     //console.log(char)
                     return byte_encoder[char.charCodeAt(0)];
                 }).join('');
-                console.log(token, "TOKEN")
+                //console.log(token, "TOKEN")
                 bpe_tokens = bpe_tokens.concat(this.bpe(token).map(token=> {
                     return token_dict[token];
                 }));
@@ -194,10 +194,10 @@ class Encoder {
         }).join('');
 
         text = text.split('').map(byte => {
-            console.log(byte)
             return String.fromCharCode(byte_decoder[byte]);
         }).join('');
         
+        console.log(text)
         return this.decode_utf8(text);
     }
 

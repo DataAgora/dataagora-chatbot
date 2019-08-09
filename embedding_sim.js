@@ -6,7 +6,8 @@ import {biasAdd, dot} from './utils.js'
 export class EmbeddingSim extends tf.layers.Layer {
 
     constructor(useBias=false, initializer=tf.initializers.zeros, regularizer=null, constraint=null, stopGradient=false, ...args) {
-        super(...args);
+        super({});
+
         this.supportsMasking = true;
         this.useBias = useBias;
         this.initializer = initializer;
@@ -56,7 +57,6 @@ export class EmbeddingSim extends tf.layers.Layer {
     }
 
     call(inputs, mask=null, ...args) {
-        console.log("sanity");
         var embeddings = inputs[1];
         inputs = inputs[0];
         // console.log("INPUTS", inputs.arraySync());
@@ -64,13 +64,10 @@ export class EmbeddingSim extends tf.layers.Layer {
 
         // console.log(embeddings)
         // console.log(inputs)
-        console.log(1)
         var outputs = dot(inputs, tf.transpose(embeddings));
-        console.log(2, outputs.shape);
         if (this.useBias) {
             outputs = biasAdd(outputs, this.bias);
         }
-        console.log(3);
         return tf.softmax(outputs);
         //console.log("AYEE")
         // var output_arr = tf.split(outputs, 2);
@@ -82,8 +79,12 @@ export class EmbeddingSim extends tf.layers.Layer {
         // console.log("4");
         // return tf.concat(new_output_arr)
     }
-}
 
+    static get className() {
+        return 'EmbeddingSim';
+    }
+}
+tf.serialization.registerClass(EmbeddingSim)
 // module.exports = {
 //     EmbeddingSim: EmbeddingSim
 // }

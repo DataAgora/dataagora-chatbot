@@ -3,12 +3,16 @@
 // var assert = require('assert');
 import {ScaledDotProductAttention} from './scaled_dot_product_attention.js';
 import {dot} from './utils.js';
+import { LayerNormalization } from './layer_normalization.js';
 
 export class MultiHeadAttention extends tf.layers.Layer {
     constructor(headNum, activation=tf.relu, historyOnly=false, useBias=true, kernelInitializer=tf.initializers.glorotNormal(),
         biasInitializer=tf.initializers.zeros(), kernelConstraint=null, biasRegularizer=null, biasConstraint=null, ...args){
 
-        super(...args);
+        if (typeof headNum == 'object') {
+            console.log(headNum, historyOnly)
+        }
+        super({});
 
         this.headNum = headNum;
         this.activation = activation;
@@ -236,7 +240,13 @@ export class MultiHeadAttention extends tf.layers.Layer {
         return y;
 
     }
+
+    static get className() {
+        return 'MultiHeadAttention';
+    }
 }
+
+tf.serialization.registerClass(MultiHeadAttention)
 
 // module.exports = {
 //     MultiHeadAttention: MultiHeadAttention

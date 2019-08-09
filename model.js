@@ -20,11 +20,54 @@ import {LayerNormalization} from './layer_normalization.js';
 import {EmbeddingSim} from './embedding_sim.js'
 import {Sampler} from './sampler.js';
 import {gelu} from './utils.js';
-import {get_encoder} from './encoder.js';
+import {get_encoder, range, enumerate} from './encoder.js';
 
-function getModel(n_vocab=50257, n_ctx=1024, n_embd=768, n_head=12, n_layer=12, batch_size=null, fixed_input_shape=false) {
+// function setWeights(model, weights) {
+//     model.layers.forEach(layer => {
+//         var layerWeights = JSON.parse(weights.pop());
+//         //console.log(layerWeights.length, layerWeights[0].length)
+//         if (layerWeights.length != 0) {
+//             //console.log(layerWeights)
+//             layerWeights = layerWeights.map(arr => {
+//                 return tf.tensor(arr);
+//             });
+//             //console.log(layer.getWeights());
+            
+            
+//             layer.setWeights(layerWeights);
+//         } 
+//     });  
+// }
 
-    var inputLayer = tf.layers.input({shape: (batch_size, n_ctx)});
+async function getWeights() {
+    var baseUrl = 'http://localhost:8000/weights/my_weights_';
+    var modelWeights = []
+    for (var i = 22; i >= 0; i--) {
+        var fullUrl = baseUrl.concat(i + ".txt");
+        var layerWeights = await fetch(fullUrl);
+        layerWeights = await layerWeights.json();
+        if (layerWeights.length == 0) {
+            modelWeights.push([]);
+        } else {
+            modelWeights.push(layerWeights.map(weight => {
+                return tf.tensor(weight);
+            }));
+        }
+    };
+    
+    return modelWeights
+}
+
+function setWeights(model, weights) {
+    //console.log(weights)
+    model.layers.forEach(layer => {
+        layer.setWeights(weights.pop());
+    });  
+}
+
+function getModel(n_vocab=50257, n_ctx=1024, n_embd=768, n_head=12, n_layer=3, batch_size=null, fixed_input_shape=false) {
+
+    var inputLayer = tf.layers.input({shape: [null]});
 
     var embeddingRet = new EmbeddingRet({
         inputDim:n_vocab,
@@ -50,7 +93,7 @@ function getModel(n_vocab=50257, n_ctx=1024, n_embd=768, n_head=12, n_layer=12, 
 
     var lastLayer = positionEmbedding
     
-    for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < n_layer; i++) {
         lastLayer = getEncoderComponent(
             'Encode-'.concat([i + ""]),
             lastLayer,
@@ -152,16 +195,67 @@ function getEncoderComponent(name, inputLayer, headNum, hiddenDim, attentionActi
 
     addLayer = tf.layers.add({name:name.concat('-Add2')});
 
+    feedForwardLayer = addLayer.apply([feedForwardLayer, normalLayer]);
+
     return feedForwardLayer;
 }
 
+// async function getWeights() {
+//     var modelWeights = await fetch('http://localhost:8000/my_weights.txt');
+//     modelWeights = await modelWeights.text();
+//     modelWeights = modelWeights.split('\n')
+//     modelWeights.pop();
+//     modelWeights = modelWeights.reverse();
+//     return modelWeights
+// }
+
 async function forwardPass(text) {
-    // var model = getModel();
+    var texts = ["How are you?"];
+    var batch_size = texts.length;
+    var modelWeights = await getWeights();
+    var model = getModel();
+    console.log(model);
+    setWeights(model, modelWeights);
+    model.save('downloads://chatbot')
     var encoder = await get_encoder();
-    console.log(encoder)
-    var encodings = encoder.encode("Hi, my name is Bill. What's your name?");
-    console.log(encodings);
-    console.log(encoder.decode(encodings))
+    console.log(encoder);
+    var encodings = encoder.encode(texts[0]);
+    var text_lens = [encodings.length];
+    var max_len = Math.max(text_lens)
+    var input_data = [encodings];
+    var textLen = 10;
+    range(0, textLen).forEach(shift => {
+        var output_data = model.predict(tf.tensor(input_data)).arraySync();
+        range(0, batch_size).forEach(index => {
+            // console.log(output_data);
+            // console.assert(false);
+            console.log(output_data)
+            var probs = enumerate(output_data[index][max_len + shift - 1]).map(pair => {
+                return [pair[1], pair[0]];
+            });
+            probs = probs.sort().reverse();
+            probs = probs[0];
+            var indices = [probs[1]];
+            probs = [probs[0]];
+            probs = tf.tensor1d(probs);
+            probs = tf.sub(probs, tf.max(probs));
+            probs = tf.exp(probs);
+            probs = tf.div(probs, probs.sum());
+            var next_token = indices[0];
+            input_data[index].push(0);
+            input_data[index][max_len + shift] = next_token;
+            console.log(next_token)
+            console.log(input_data)
+        })
+    });
+
+    var outputs = encoder.decode(input_data[0].slice(max_len, max_len + textLen));
+
+    console.log(outputs);
+
+
+
+
     // var chunks = data;
 
     // var dataSampler = new Sampler(chunks);
@@ -182,3 +276,4 @@ async function forwardPass(text) {
 }
 
 forwardPass();
+// getWeights()

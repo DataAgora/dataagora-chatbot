@@ -10,7 +10,7 @@ export class FeedForward extends tf.layers.Layer {
     biasInitializer=tf.initializers.zeros(), kernelConstraint=null, biasRegularizer=null, biasConstraint=null, 
     dropoutRate=0.0, ...args) {
 
-        super(...args);
+        super({});
 
         this.supportsMasking = true;
         this.units = units;
@@ -121,8 +121,12 @@ export class FeedForward extends tf.layers.Layer {
         return y;
 
     }
-}
 
+    static get className() {
+        return 'FeedForward';
+    }
+}
+tf.serialization.registerClass(FeedForward)
 // module.exports = {
 //     FeedForward:FeedForward
 // }

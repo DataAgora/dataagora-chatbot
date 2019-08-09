@@ -4,7 +4,8 @@ import {batchDot, dot} from './utils.js';
 
 export class ScaledDotProductAttention extends tf.layers.Layer {
     constructor (returnAttention=false, historyOnly=false, ...args) {
-        super(...args);
+        super({});
+
         this.supportsMasking = true;
         this.returnAttention = returnAttention;
         this.historyOnly = historyOnly;
@@ -118,7 +119,12 @@ export class ScaledDotProductAttention extends tf.layers.Layer {
             return v;
         }
     }
+
+    static get className() {
+        return 'ScaledDotProductAttention';
+    }
 }
+tf.serialization.registerClass(ScaledDotProductAttention)
 
 // module.exports = {
 //     ScaledDotProductAttention:ScaledDotProductAttention
