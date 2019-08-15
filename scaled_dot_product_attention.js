@@ -4,7 +4,13 @@ import {batchDot, dot} from './utils.js';
 
 export class ScaledDotProductAttention extends tf.layers.Layer {
     constructor (returnAttention=false, historyOnly=false, ...args) {
-        super({});
+        if (typeof returnAttention == 'object') {
+            var config = returnAttention;
+            returnAttention = config.returnAttention;
+            super({trainable:config.trainable, name:config.name});
+        } else {
+            super(...args);
+        }
 
         this.supportsMasking = true;
         this.returnAttention = returnAttention;
@@ -20,6 +26,7 @@ export class ScaledDotProductAttention extends tf.layers.Layer {
     }
 
     computeOutputShape(inputShape) {
+        //console.log(inputShape)
         var queryShape, keyShape, valueShape;
         if (Array.isArray(inputShape)) {
             queryShape = inputShape[0];
@@ -54,6 +61,7 @@ export class ScaledDotProductAttention extends tf.layers.Layer {
     call(inputs, mask=null, ...args) {
         //console.log("YAY");
         var query, key, value;
+        
         if (Array.isArray(inputs)) {
             query = inputs[0];
             key = inputs[1];
@@ -66,8 +74,6 @@ export class ScaledDotProductAttention extends tf.layers.Layer {
 
         // console.log("query", query)
         // console.log("key", key)
-        var tempQuery = query.arraySync();
-        var tempKey = key.arraySync();
         var featureDim = query.shape[query.shape.length - 1];
         // var batch_dot_result = [];
         // for (var i = 0; i < tempQuery.length; i++) {
@@ -84,18 +90,25 @@ export class ScaledDotProductAttention extends tf.layers.Layer {
         var batch_dot_result = batchDot(query, key, 2);
         //console.log(batch_dot_result.shape)
         var e = tf.div(batch_dot_result, tf.sqrt(tf.cast(featureDim, "float32")));
+        //console.log("e1", e.arraySync())
         //console.log(e.shape)
         e = tf.exp(tf.sub(e, tf.max(e, e.shape.length-1, true)));
+        //console.log("e2", e.arraySync())
 
+        //console.log(this.historyOnly)
         if (this.historyOnly) {
             var queryLen = query.shape[1];
             var keyLen = key.shape[1];
+            //console.log("lens", queryLen, keyLen);
             var indices = tf.expandDims(tf.range(0, keyLen), 0);
-            var upper = tf.expandDims(tf.range(0, queryLen), tf.range(0, queryLen).shape.length - 1);
+            //console.log("indices", indices.arraySync())
+            var upper = tf.expandDims(tf.range(0, queryLen), 1);
+            //console.log("upper", upper.arraySync())
             var result = tf.expandDims(tf.cast(tf.lessEqual(indices, upper), "float32"), 0);
-            //console.log(result.shape, e.shape)
+            //console.log("result", result.arraySync())
             e = tf.mul(e, result);
         }
+        //console.log("e3", e.arraySync())
 
         if (mask != null) {
             e = tf.mul(e, tf.cast(tf.expandDims(mask, mask.shape.length - 2), "float32"));

@@ -6,13 +6,17 @@ export class PositionEmbedding extends tf.layers.Layer {
     static MODE_CONCAT = 'concat';
 
     constructor(inputDim, outputDim, mode=PositionEmbedding.MODE_EXPAND, embeddingsInitializer = tf.initializers.randomUniform({minval:-0.05, maxval:0.05}),
-        embeddingsRegularizer = null, activityRegularizer = null, embeddingsConstraint=null, maskZero=false) {
+        embeddingsRegularizer = null, activityRegularizer = null, embeddingsConstraint=null, maskZero=false, ...args) {
 
-        // if (!(name) in ...args) {
-        //     ...args[name] = "defaultPosition"
-        // }
-        console.log(inputDim, outputDim)
-        super({});
+        if (typeof inputDim == 'object') {
+            var config = inputDim;
+            inputDim = config.inputDim;
+            outputDim = config.outputDim;
+            mode = config.mode;
+            super({trainable:config.trainable, name:config.name});
+        } else {
+            super(...args);
+        }
 
         this.inputDim = inputDim;
         this.outputDim =  outputDim;
@@ -116,7 +120,7 @@ export class PositionEmbedding extends tf.layers.Layer {
         )
         //console.log("HELLO")
         if (this.mode == PositionEmbedding.MODE_ADD) {
-            return inputs.concat(posEmbeddings);
+            return tf.add(inputs[0], posEmbeddings);
         } else {
             return tf.concat([inputs, posEmbeddings], 1);
         }

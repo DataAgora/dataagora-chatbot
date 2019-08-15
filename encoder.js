@@ -31,7 +31,7 @@ export function range(start, finish) {
     return [...Array(size).keys()].map(i => i + start);
 }
     
-function zip(arr1, arr2) {
+export function zip(arr1, arr2) {
     return arr1.map(function(e, i) {
         return [e, arr2[i]];
     })
@@ -197,7 +197,7 @@ class Encoder {
             return String.fromCharCode(byte_decoder[byte]);
         }).join('');
         
-        console.log(text)
+        //console.log(text)
         return this.decode_utf8(text);
     }
 

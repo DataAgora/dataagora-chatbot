@@ -69,6 +69,11 @@ function range(start, finish) {
     return [...Array(size).keys()].map(i => i + start);
 }
 
+function pop(arr, i) {
+    var removed = arr.splice(i, 1);
+    return removed[0]
+}
+
 export function dot(x, y) {
     var x_dim = x.shape.length;
     var y_dim = y.shape.length;
@@ -80,7 +85,7 @@ export function dot(x, y) {
     var y_permute_dim = range(0, y_dim);
 
     //console.log(y_permute_dim)
-    y_permute_dim = [y_permute_dim.pop(y_permute_dim.length - 2)].concat(y_permute_dim);
+    y_permute_dim = [pop(y_permute_dim, y_permute_dim.length - 2)].concat(y_permute_dim);
 
     //console.log(y_permute_dim);
     var xt = tf.reshape(x, [x.size/x.shape[x_dim - 1], x.shape[x_dim - 1]]);

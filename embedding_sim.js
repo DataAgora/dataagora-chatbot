@@ -6,7 +6,13 @@ import {biasAdd, dot} from './utils.js'
 export class EmbeddingSim extends tf.layers.Layer {
 
     constructor(useBias=false, initializer=tf.initializers.zeros, regularizer=null, constraint=null, stopGradient=false, ...args) {
-        super({});
+        if (typeof useBias == 'object') {
+            var config = useBias;
+            useBias = config.useBias;
+            super({trainable:config.trainable, name:config.name});
+        } else {
+            super(...args);
+        }
 
         this.supportsMasking = true;
         this.useBias = useBias;

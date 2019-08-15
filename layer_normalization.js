@@ -5,7 +5,13 @@ export class LayerNormalization extends tf.layers.Layer {
         betaInitializer=tf.initializers.zeros(), gammaRegularizer=null, betaRegularizer=null,
         gammaConstraint=null, betaConstraint=null, ...args) {
 
-            super({});
+            if (typeof center == 'object') {
+                var config = center;
+                center = config.center;
+                super({trainable:config.trainable, name:config.name});
+            } else {
+                super(...args);
+            }
 
 
             this.supports_masking = true;
@@ -23,6 +29,13 @@ export class LayerNormalization extends tf.layers.Layer {
             
             this.gamma = null
             this.beta = null
+    }
+
+    getConfig() {
+        var baseConfig = super.getConfig();
+        baseConfig['center'] = this.center;
+        baseConfig['scale'] = this.scale;
+        return baseConfig;
     }
 
     computeOutputShape(inputShape) {

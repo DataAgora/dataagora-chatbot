@@ -10,7 +10,15 @@ export class FeedForward extends tf.layers.Layer {
     biasInitializer=tf.initializers.zeros(), kernelConstraint=null, biasRegularizer=null, biasConstraint=null, 
     dropoutRate=0.0, ...args) {
 
-        super({});
+        if (typeof units == 'object') {
+            var config = units;
+            units = config.units;
+            activation = config.activation;
+            useBias = config.useBias;
+            super({trainable:config.trainable, name:config.name});
+        } else {
+            super(...args);
+        }
 
         this.supportsMasking = true;
         this.units = units;
@@ -27,6 +35,19 @@ export class FeedForward extends tf.layers.Layer {
         this.b1 = null;
         this.W2 = null;
         this.b2 = null;
+    }
+
+    getConfig() {
+        var baseConfig = super.getConfig();
+        baseConfig['units'] = this.units;
+        baseConfig['activation'] = this.relu,
+        baseConfig['useBias'] = this.useBias;
+        baseConfig['kernelInitializer'] = this.kernelInitializer;
+        baseConfig['biasInitializer'] = this.biasInitializer;
+        baseConfig['kernelConstraint'] = this.kernelConstraint;
+        baseConfig['biasConstraint'] = this.biasConstraint;
+        baseConfig['biasRegularizer'] = this.biasRegularizer;
+        return baseConfig;
     }
 
     computeOutputShape(inputShape) {

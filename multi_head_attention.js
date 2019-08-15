@@ -10,10 +10,18 @@ export class MultiHeadAttention extends tf.layers.Layer {
         biasInitializer=tf.initializers.zeros(), kernelConstraint=null, biasRegularizer=null, biasConstraint=null, ...args){
 
         if (typeof headNum == 'object') {
-            console.log(headNum, historyOnly)
+            var config = headNum;
+            headNum = config.headNum;
+            activation = config.activation;
+            historyOnly = config.historyOnly;
+            useBias = config.useBias;
+            biasInitializer = config.biasInitializer;
+            super({trainable:config.trainable, name:config.name});
+        } else {
+            super(...args);
         }
-        super({});
 
+        this.supportsMasking = true;
         this.headNum = headNum;
         this.activation = activation;
         this.historyOnly = historyOnly;
@@ -34,6 +42,19 @@ export class MultiHeadAttention extends tf.layers.Layer {
         this.bo = null;
     }
 
+    getConfig() {
+        var baseConfig = super.getConfig();
+        baseConfig['headNum'] = this.headNum;
+        baseConfig['activation'] = this.relu,
+        baseConfig['historyOnly'] = false;
+        baseConfig['useBias'] = true;
+        baseConfig['kernelInitializer'] = this.kernelInitializer;
+        baseConfig['biasInitializer'] = this.biasInitializer;
+        baseConfig['kernelConstraint'] = this.kernelConstraint;
+        baseConfig['biasConstraint'] = this.biasConstraint;
+        baseConfig['biasRegularizer'] = this.biasRegularizer;
+        return baseConfig;
+    }
     computeOutputShape(inputShape) {
         return inputShape;
     }
@@ -155,20 +176,9 @@ export class MultiHeadAttention extends tf.layers.Layer {
         return tf.reshape(mask, [mask.size/seqLen, seqLen]);
     }
 
-    dot(x, y) {
-        var newArr = [];
-        x = x.arraySync();
-        y = y.arraySync();
-        for (var i = 0; i < x.length; i++) {
-            newArr.push(tf.dot(x[i], y).arraySync());
-        }
-        var newTensor = tf.tensor(newArr)
-        //console.log("FINISHED");
-        return newTensor;
-    }
-
     call(inputs, mask=null) {
         //console.log(inputs)
+        //console.log(inputs[0].arraySync())
         var q, k, v;
         q = k = v = inputs[0];
 
@@ -176,7 +186,7 @@ export class MultiHeadAttention extends tf.layers.Layer {
         var q_mask, k_mask, v_mask;
         q_mask = k_mask = v_mask = null;
 
-        
+        //console.log("first q", q);
         //console.log(this.Wq, "thisWq")
         //console.log(q)
         //console.log("Q", q.shape);
@@ -185,7 +195,6 @@ export class MultiHeadAttention extends tf.layers.Layer {
         q = dot(q, this.Wq.val);
         k = dot(k, this.Wk.val);
         v = dot(v, this.Wv.val);
-
         
         if (this.useBias) {
             q = tf.add(q, this.bq.val);
@@ -199,6 +208,7 @@ export class MultiHeadAttention extends tf.layers.Layer {
             v = this.activation(v);
         }
 
+        //console.log("second q, Wq", q.arraySync());
         //console.log(q, "q");
         var y = new ScaledDotProductAttention(
             undefined,
