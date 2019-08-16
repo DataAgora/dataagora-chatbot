@@ -58,7 +58,7 @@ export class Model {
     // }
 
     static async getSetWeights(model, maxLayer=76) {
-        var baseUrl = 'http://localhost:5000/weights/weights_';
+        var baseUrl = 'https://dataagora-chatbot.s3-us-west-1.amazonaws.com/weights/weights_';
         for (var i = 0; i <= maxLayer; i++) {
             var layer = model.layers[i];
             var baseLayerUrl = baseUrl.concat(i + "_");

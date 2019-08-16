@@ -1,2 +1,6 @@
-newenv/*
+
+new-env/*
 117M/*
+static/weights/*
+*/.DS_Store
+*/*/.DS_Store
