@@ -82,7 +82,12 @@ export class Model {
         // console.log("Setting...")
         // await getSetWeights(model);
         var model = this.model;
-        
+
+        // console.log("HEY");
+        // await model.save(tf.io.browserHTTPRequest(
+        //     'http://localhost:5002/upload',
+        //     {method: 'POST', headers: {'Access-Control-Allow-Origin': '*'}}));
+        // return "Howdy";
         // console.log(model.layers[1].getWeights()[0].arraySync());
         var encoder = await get_encoder();
         console.log(encoder);
@@ -91,15 +96,11 @@ export class Model {
         var max_len = Math.max(text_lens)
         var input_data = [encodings];
         //var new_model = tf.model({inputs:model.inputs[0], outputs:model.layers[2].output});
-        // console.log("HEY");
-        // await model.save(tf.io.browserHTTPRequest(
-        //     'http://localhost:5002/upload',
-        //     {method: 'POST', headers: {'Access-Control-Allow-Origin': '*'}}));
         // var m = this.getModel();
 
         // console.log(new_model.predict(tf.tensor(encodings)).arraySync());
         // console.log(m.predict(tf.tensor(input_data)));
-        var textLen = 20;
+        var textLen = 21;
         range(0, textLen).forEach(shift => {
             var output_data = model.predict(tf.tensor(input_data)).arraySync();
             range(0, batch_size).forEach(index => {
@@ -121,7 +122,7 @@ export class Model {
         });
     
         var outputs = encoder.decode(input_data[0].slice(max_len, max_len + textLen));
-    
+        
         console.log(outputs);
     
         return outputs;

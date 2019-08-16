@@ -146,11 +146,13 @@ class Encoder {
         var token_dict = this.token_dict;
         var num = 0;
         var temp = [];
+        text = text.trim()
         temp = text.split(' ');
         temp.forEach(text => {
             var space;
             var i = 0;
-            text.match(this.token_pattern).forEach(token => {
+            var matchArr = text.match(this.token_pattern);
+            matchArr.forEach(token => {
                 if (num != 0 && i == 0) {
                     token = ' ' + token;
                 }

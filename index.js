@@ -1,6 +1,8 @@
 import {Model} from './model.js';
+import {Conversation} from './conversation.js';
 
 var model = null;
+var chatbot = null;
 
 //---------------------------------- Credentials Section ----------------------------------//
 // All credentials come from credentials.js which isnt on github
@@ -141,6 +143,7 @@ async function loadModel() {
 	model = new Model();
 	model.model = await Model.getPartialModel(model.model, 76);
 	console.log('Model loaded!');
+	chatbot = new Conversation(undefined, model);
 	document.getElementById('inputText').disabled = false;
 	document.getElementById('inputText').placeholder = "Chatbot ready. Enter text here.";
 }
@@ -177,7 +180,8 @@ async function send(text) {
 	var delta = Date.now() - start;
 	console.log("delta", delta);
     console.log(model);
-    var output = await model.forwardPass(texts);
+	await chatbot.next(true, text);
+	var output = await chatbot.next();
 	delta = Date.now() - start - delta;
 	console.log("delta2", delta);
 	newRecievedMessage(output);
