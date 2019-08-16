@@ -5,4 +5,7 @@
 !.elasticbeanstalk/*.global.yml
 new-env/*
 117M/*
-
+static/weights/*
+static/my_weights_12/*
+*/.DS_Store
+*/*/.DS_Store
