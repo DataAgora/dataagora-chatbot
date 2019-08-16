@@ -58,17 +58,19 @@ export class Model {
     // }
 
     static async getSetWeights(model, maxLayer=76) {
-        var baseUrl = 'http://localhost:5000/my_weights_12/my_weights_';
+        var baseUrl = 'http://localhost:5000/weights/weights_';
         for (var i = 0; i <= maxLayer; i++) {
-            var fullUrl = baseUrl.concat(i + ".txt");
-            var layerWeights = await fetch(fullUrl);
-            layerWeights = await layerWeights.json();
             var layer = model.layers[i];
-            if (layerWeights.length != 0) {
-                layer.setWeights(layerWeights.map(weight => {
-                    return tf.tensor(weight);
-                }));
-            } 
+            var baseLayerUrl = baseUrl.concat(i + "_");
+            var layerWeights = [];
+            for (var j = 0; j < layer.getWeights().length; j++) {
+                var fullUrl = baseLayerUrl.concat(j + ".json");
+                var layerWeight = await fetch(fullUrl);
+                layerWeight = await layerWeight.json();
+                layerWeights.push(tf.tensor(layerWeight));
+            }
+            
+            layer.setWeights(layerWeights);
         };
     }
 
