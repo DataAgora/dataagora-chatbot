@@ -1,0 +1,24 @@
+{
+  "name": "dataagora-chatbot",
+  "version": "1.0.0",
+  "description": "DataAgora's decentralized chatbot that trains in real time with federated learning.",
+  "main": "chatbot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neeleshdodda44/dataagora-chatbot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/neeleshdodda44/dataagora-chatbot/issues"
+  },
+  "homepage": "https://github.com/neeleshdodda44/dataagora-chatbot#readme",
+  "dependencies": {
+    "@tensorflow/tfjs": "^1.2.5",
+    "longjohn": "^0.2.12",
+    "lru-cache": "^5.1.1"
+  }
+}
