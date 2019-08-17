@@ -58,19 +58,19 @@ export class Model {
     // }
 
     static async getSetWeights(model, maxLayer=76) {
-        var baseUrl = 'https://dataagora-chatbot.s3-us-west-1.amazonaws.com/weights/weights_';
+        var baseUrl = 'https://dataagora-chatbot.s3-us-west-1.amazonaws.com/weights_12/weights_';
         for (var i = 0; i <= maxLayer; i++) {
             var layer = model.layers[i];
-            var baseLayerUrl = baseUrl.concat(i + "_");
-            var layerWeights = [];
-            for (var j = 0; j < layer.getWeights().length; j++) {
-                var fullUrl = baseLayerUrl.concat(j + ".json");
-                var layerWeight = await fetch(fullUrl);
-                layerWeight = await layerWeight.json();
-                layerWeights.push(tf.tensor(layerWeight));
-            }
-            
-            layer.setWeights(layerWeights);
+            var weightsLength = layer.getWeights().length;
+            if (weightsLength != 0) {
+                console.log("Starting layer", i)
+                var fullUrl = baseUrl.concat(i + ".json");
+                var layerWeights = await fetch(fullUrl);
+                layerWeights = await layerWeights.json();
+                layer.setWeights(layerWeights.map(weightArr => {
+                    return tf.tensor(weightArr);
+                }));
+            }            
         };
     }
 

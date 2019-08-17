@@ -1,14 +1,15 @@
 import json
+import os
 
-base_url = "static/my_weights_12/my_weights_{o}.txt"
+base_url = "static/weights.json"
 
-save_base_url = "static/weights/weights_{o}_{n}.json"
+save_base_url = "static/weights_12/weights_{o}.json"
 
-for i in range(77):
-    full_base = base_url.format(o=i)
-    with open(full_base, "r") as f:
-        weights_arr = json.loads(f.read())
-        for j, weights in enumerate(weights_arr):
-            full_save = save_base_url.format(o=i, n=j)
-            with open(full_save, "w") as ff:
-                ff.write(json.dumps(weights))
+with open(base_url, "w") as f:
+    for i in range(77):
+        full_base = save_base_url.format(o=i)
+        print(full_base)
+        with open(full_base, "r") as ff:
+            f.write(ff.read())
+            f.write('\n')
+    

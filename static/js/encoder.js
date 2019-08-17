@@ -214,9 +214,9 @@ class Encoder {
 }
 
 export async function get_encoder() {
-    var encoder_json = await fetch('http://localhost:8000/encoder.json');
+    var encoder_json = await fetch('encoder.json');
     encoder_json = await encoder_json.json();
-    var vocab_bpe = await fetch('http://localhost:8000/vocab.bpe');
+    var vocab_bpe = await fetch('vocab.bpe');
     vocab_bpe = await vocab_bpe.text();
     var bpe_rank = {}
     var temp_arr = vocab_bpe.split('\n')

@@ -48,6 +48,8 @@ var DEFAULT_TIME_DELAY = 3000;
 
 // Variable for the chatlogs div
 var $chatlogs = $('.chatlogs');
+
+var start = Date.now();
 	
 
 $('document').ready(function(){
@@ -141,8 +143,9 @@ $('document').ready(function(){
 async function loadModel() {
 	console.log("Loading model...")
 	model = new Model();
+	console.log("Model created", (Date.now() - start)/60000);
 	model.model = await Model.getPartialModel(model.model, 76);
-	console.log('Model loaded!');
+	console.log('Weights loaded!', (Date.now() - start)/60000);
 	chatbot = new Conversation(undefined, model);
 	document.getElementById('inputText').disabled = false;
 	document.getElementById('inputText').placeholder = "Chatbot ready. Enter text here.";
@@ -170,7 +173,7 @@ async function send(text) {
 
     var texts = [text];
 
-	var start = Date.now();
+	
     // if (model == null ) {
 		
     //     console.log("Got model!")
@@ -178,12 +181,11 @@ async function send(text) {
 	// 	//console.log(model.model.layers[1].getWeights()[0].arraySync());
 	// }
 	var delta = Date.now() - start;
-	console.log("delta", delta);
     console.log(model);
 	await chatbot.next(true, text);
 	var output = await chatbot.next();
 	delta = Date.now() - start - delta;
-	console.log("delta2", delta);
+	console.log("Got output!", (Date.now() - start)/60000);
 	newRecievedMessage(output);
 
 	document.getElementById('inputText').disabled = false;
@@ -401,7 +403,7 @@ function createNewMessage(message) {
 	// Append a new div to the chatlogs body, with an image and the text from API.AI
 	$chatlogs.append(
 		$('<div/>', {'class': 'chat friend'}).append(
-			$('<div/>', {'class': 'user-photo'}).append($('<img src="Images/ana.JPG" />')), 
+			$('<div/>', {'class': 'user-photo'}).append($(`<img src="{{ url_for('static', filename='css/Images/dataagora.png') }}" />`)), 
 			$('<p/>', {'class': 'chat-message', 'text': message})));
 
 	// Find the last message in the chatlogs

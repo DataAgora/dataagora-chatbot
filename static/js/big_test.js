@@ -167,4 +167,10 @@ function createConvModel() {
     return model;
   }
 
-doStuff2()
+async function stuffo() {
+  var received = await fetch('https://dataagora-chatbot.s3-us-west-1.amazonaws.com/weights/weights_1_0.json');
+  received = await received.json();
+  console.log(received);
+}
+
+stuffo();

@@ -1,6 +1,13 @@
+# Ignore everything
+*
 
-new-env/*
-117M/*
-static/weights/*
-*/.DS_Store
-*/*/.DS_Store
+# Except  
+!static/encoder.json
+!static/vocab.bpe
+!static/hparams.json
+!static/css/*
+!static/css/Images/*
+!static/js/*
+!templates/*
+!main.py
+!requirements.txt
