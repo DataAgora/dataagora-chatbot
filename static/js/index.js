@@ -1,43 +1,18 @@
 import {Model} from './model.js';
-import {Conversation} from './conversation.js';
+import {Chatbot} from './chatbot.js';
+import {DataAgoraDML} from './dataagora-dml/dataagora-dml.js';
+
+/*  
+INDEX.JS
+	- Handles all direct interactions between the user and the UI
+    - Loads the chatbot and its model
+    - Passes and receives text to and from chatbot respectively
+*/
 
 var model = null;
 var chatbot = null;
+var dataagora_dml = new DataAgoraDML();
 
-// //---------------------------------- Credentials Section ----------------------------------//
-// // All credentials come from credentials.js which isnt on github
-
-// // Information needed to access the api.ai bot, only thing needed to be changed 
-// // Emoji Bot
-// var accessToken = credentialsAccessToken;
-
-// //var bot name is used for the firebase database
-// var botName = credentialsBotName;
-
-// var baseUrl = credentialsBaseUrl;
-
-// // Initialize Firebase
-// var config = credentialsConfig;
-
-// // The format for config is as follows
-// // Set the configuration for your app
-// // TODO: Replace with your project's config object
-// // You can get this information by creating a project and clicking connect with web or start with web
-// // var config = {
-// // 	apiKey: "apiKey",
-// // 	authDomain: "projectId.firebaseapp.com",
-// // 	databaseURL: "https://databaseName.firebaseio.com",
-// // 	storageBucket: "bucket.appspot.com"
-// // };
-
-
-// firebase.initializeApp(config);
-
-// Key for this instance of the chat interface
-// var newKey = firebase.database().ref(botName).push().key;
-// console.log("Key for this chat instance = " + newKey);
-
-//---------------------------------- Main Code Area ----------------------------------//
 //  Variables to be used for storing the last message sent and recieved for the database
 var lastSentMessage = "";
 var lastRecievedMessage = 1;
@@ -137,16 +112,16 @@ $('document').ready(function(){
 		
 	});
 	loadModel();
-
 })
 
+// Load model, disable input box in the meantime.
 async function loadModel() {
 	console.log("Loading model...")
 	model = new Model();
-	console.log("Model created", (Date.now() - start)/60000);
+	console.log("Model created");
 	model.model = await Model.getPartialModel(model.model, 76);
-	console.log('Weights loaded!', (Date.now() - start)/60000);
-	chatbot = new Conversation(undefined, model);
+	console.log('Weights loaded!');
+	chatbot = new Chatbot(undefined, model);
 	document.getElementById('inputText').disabled = false;
 	document.getElementById('inputText').placeholder = "Chatbot ready. Enter text here.";
 }
@@ -154,11 +129,11 @@ async function loadModel() {
 
 // Method which takes the users text and sends an AJAX post request to API.AI
 // Creates a new Div with the users text, and recieves a response message from API.AI 
-async function send(text) {
+async function send(inputText) {
 	// Create a div with the text that the user typed in
 	$chatlogs.append(
         $('<div/>', {'class': 'chat self'}).append(
-            $('<p/>', {'class': 'chat-message', 'text': text})));
+            $('<p/>', {'class': 'chat-message', 'text': inputText})));
 
 	// Find the last message in the chatlogs
 	var $sentMessage = $(".chatlogs .chat").last();
@@ -166,30 +141,33 @@ async function send(text) {
 	// Check to see if that message is visible
 	checkVisibility($sentMessage);
 
+	// Disable input box while waiting for response
 	document.getElementById('inputText').disabled = true;
 	document.getElementById('inputText').placeholder = "Waiting for response. Please wait...";
 
 	showLoading();
+	
+	// Send chatbot input text, wait for output
+	await chatbot.next(true, inputText);
+	var chatbotText = await chatbot.next();
+	console.log("Got output!");
 
-    var texts = [text];
 
 	
-    // if (model == null ) {
-		
-    //     console.log("Got model!")
-    //     console.log(model.model.layers[1].getWeights()[0].arraySync()[0][0]);
-	// 	//console.log(model.model.layers[1].getWeights()[0].arraySync());
-	// }
-	var delta = Date.now() - start;
-    console.log(model);
-	await chatbot.next(true, text);
-	var output = await chatbot.next();
-	delta = Date.now() - start - delta;
-	console.log("Got output!", (Date.now() - start)/60000);
-	newRecievedMessage(output);
+	// Set up library if necessary, and then store the input/output text
+	const repo_id = "3e55b6e37447aca26c807c2aa5961d89";
+	if (!dataagora_dml.isBootstrapped) {
+		dataagora_dml.bootstrap(repo_id);
+	}
+	dataagora_dml.store(inputText);
+	dataagora_dml.store(chatbotText);
+
+
+	newRecievedMessage(chatbotText);
 
 	document.getElementById('inputText').disabled = false;
 	document.getElementById('inputText').placeholder = "Chatbot ready. Enter text here.";
+	
 }
 
 
@@ -403,7 +381,7 @@ function createNewMessage(message) {
 	// Append a new div to the chatlogs body, with an image and the text from API.AI
 	$chatlogs.append(
 		$('<div/>', {'class': 'chat friend'}).append(
-			$('<div/>', {'class': 'user-photo'}).append($(`<img src="{{ url_for('static', filename='css/Images/dataagora.png') }}" />`)), 
+			$('<div/>', {'class': 'user-photo'}).append($("<img src='/static/css/Images/dataagora.png'>")), 
 			$('<p/>', {'class': 'chat-message', 'text': message})));
 
 	// Find the last message in the chatlogs

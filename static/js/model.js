@@ -1,61 +1,30 @@
-// var tf = require("@tensorflow/tfjs-node");
-// var fs = require('fs');
-// var Sampler = require('./sampler').Sampler;
-// var longjohn = require('longjohn');
 
-// var EmbeddingRet = require('./embedding_ret').EmbeddingRet;
-// var PositionEmbedding = require('./position_embedding').PositionEmbedding;
-// var MultiHeadAttention = require('./multi_head_attention').MultiHeadAttention;
-// var FeedForward = require('./feed_forward').FeedForward;
-// var LayerNormalization = require('./layer_normalization').LayerNormalization;
-// var DummyLayer = require('./dummy_layer').DummyLayer;
+import {EmbeddingRet} from './model/embedding_ret.js/index.js';
+import {PositionEmbedding} from './model/position_embedding.js';
+import {MultiHeadAttention} from './model/multi_head_attention.js';
+import {FeedForward} from './model/feed_forward.js/index.js';
+import {LayerNormalization} from './model/layer_normalization.js';
+import {EmbeddingSim} from './model/embedding_sim.js/index.js'
+import {gelu} from './model/utils.js';
+import {get_encoder, range} from './encoder.js';
 
-// var EmbeddingSim = require('./embedding_sim').EmbeddingSim;
-
-import {EmbeddingRet} from './embedding_ret.js';
-import {PositionEmbedding} from './position_embedding.js';
-import {MultiHeadAttention} from './multi_head_attention.js';
-import {FeedForward} from './feed_forward.js';
-import {LayerNormalization} from './layer_normalization.js';
-import {EmbeddingSim} from './embedding_sim.js'
-import {Sampler} from './sampler.js';
-import {gelu} from './utils.js';
-import {get_encoder, range, enumerate, zip} from './encoder.js';
-
-// function setWeights(model, weights) {
-//     model.layers.forEach(layer => {
-//         var layerWeights = JSON.parse(weights.pop());
-//         //console.log(layerWeights.length, layerWeights[0].length)
-//         if (layerWeights.length != 0) {
-//             //console.log(layerWeights)
-//             layerWeights = layerWeights.map(arr => {
-//                 return tf.tensor(arr);
-//             });
-//             //console.log(layer.getWeights());
-            
-            
-//             layer.setWeights(layerWeights);
-//         } 
-//     });  
-// }
-
+/*
+MODEL
+    - The language model that the chatbot uses: built using TFJS, with weights loaded from S3
+    - Takes preprocessed input text -> encodes -> feeds into model -> decodes output
+    - Based off the Keras GPT-2 model at https://github.com/CyberZHG/keras-gpt-2/tree/master/keras_gpt_2
+*/
 export class Model {
     constructor() { 
-        this.model = this.getModel();        
+        this.model = this.getModel();    
+        this.store = false;    
     }
 
     static async getPartialModel(model, layerNum) {
-        //console.log(model)
         var new_model = tf.model({inputs:model.inputs[0], outputs:model.layers[layerNum].output});
         await Model.getSetWeights(new_model, layerNum);
         return new_model;
     }
-
-    // async parseStuff() {
-    //     var encodings = [25420,29207,32560,14315,14315,21813,42200,21813,,5792,49420,42200,14314];
-    //     var encoder = await get_encoder();
-    //     console.log(encoder.decode(encodings));
-    // }
 
     static async getSetWeights(model, maxLayer=76) {
         var baseUrl = 'https://dataagora-chatbot.s3-us-west-1.amazonaws.com/weights_12/weights_';
@@ -63,7 +32,6 @@ export class Model {
             var layer = model.layers[i];
             var weightsLength = layer.getWeights().length;
             if (weightsLength != 0) {
-                console.log("Starting layer", i)
                 var fullUrl = baseUrl.concat(i + ".json");
                 var layerWeights = await fetch(fullUrl);
                 layerWeights = await layerWeights.json();
@@ -74,59 +42,33 @@ export class Model {
         };
     }
 
-    async forwardPass(texts, top_k = 1) {
-        //var texts = ["What is your name?"];
+    async forwardPass(texts, top_k = 1, temperature=1) {
         var batch_size = texts.length;
-        // console.log("Getting...")
-        // var model = this.getModel();
-        // console.log(model)
-        // //
-        // console.log("Setting...")
-        // await getSetWeights(model);
         var model = this.model;
-
-        // console.log("HEY");
-        // await model.save(tf.io.browserHTTPRequest(
-        //     'http://localhost:5002/upload',
-        //     {method: 'POST', headers: {'Access-Control-Allow-Origin': '*'}}));
-        // return "Howdy";
-        // console.log(model.layers[1].getWeights()[0].arraySync());
         var encoder = await get_encoder();
-        console.log(encoder);
         var encodings = encoder.encode(texts[0]);
         var text_lens = [encodings.length];
         var max_len = Math.max(text_lens)
         var input_data = [encodings];
-        //var new_model = tf.model({inputs:model.inputs[0], outputs:model.layers[2].output});
-        // var m = this.getModel();
-
-        // console.log(new_model.predict(tf.tensor(encodings)).arraySync());
-        // console.log(m.predict(tf.tensor(input_data)));
         var textLen = 21;
         range(0, textLen).forEach(shift => {
             var output_data = model.predict(tf.tensor(input_data)).arraySync();
             range(0, batch_size).forEach(index => {
-                // console.log(output_data);
-                // console.assert(false);
                 var probs = tf.tensor(output_data[index][max_len + shift - 1]);
-                var {values, indices} = tf.topk(probs, 1);
+                var {values, indices} = tf.topk(probs, top_k);
                 probs = values;
+                probs = tf.div(probs, temperature);
                 probs = tf.sub(probs, tf.max(probs));
                 probs = tf.exp(probs);
                 probs = tf.div(probs, probs.sum());
-                //return "Howdy";
                 var next_token = indices.arraySync()[0];
                 input_data[index].push(0);
                 input_data[index][max_len + shift] = next_token;
-                console.log(next_token)
-                //console.log(input_data)
             })
         });
     
         var outputs = encoder.decode(input_data[0].slice(max_len, max_len + textLen));
-        
-        console.log(outputs);
-    
+            
         return outputs;
     }
 
@@ -265,21 +207,3 @@ export class Model {
         return feedForwardLayer;
     }
 }
-
-
-
-
-
-// async function getWeights() {
-//     var modelWeights = await fetch('http://localhost:8000/my_weights.txt');
-//     modelWeights = await modelWeights.text();
-//     modelWeights = modelWeights.split('\n')
-//     modelWeights.pop();
-//     modelWeights = modelWeights.reverse();
-//     return modelWeights
-// }
-
-
-
-//forwardPass();
-// getWeights()
