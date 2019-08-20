@@ -1,23 +1,10 @@
-// var tf = require('@tensorflow/tfjs-node');
-// var assert = require('assert');
+
 
 export function biasAdd(x, bias) {
     var biasShape = bias.shape;
     console.assert(biasShape.length == 1 || biasShape.length == x.shape.length - 1);
 
     console.assert(x.shape.length == 3);
-    // switch (x.shape.length) {
-    //     case 5:
-    //         if (biasShape.length == 1) {
-    //             x = tf.add(x, tf.reshape(bias, [1, 1, 1, biasShape[0]]));
-    //         } else {
-    //             x = tf.add(x, tf.reshape(bias, [1].concat(biasShape)));
-    //         }
-    //         break;
-
-    //     case 4:
-
-    // }
     x = tf.add(x, tf.reshape(bias, [1, 1, biasShape[0]]));
     return x;
 }
@@ -64,16 +51,6 @@ export function batchDot(x, y, axis) {
     return out;
 }
 
-function range(start, finish) {
-    var size = finish - start;
-    return [...Array(size).keys()].map(i => i + start);
-}
-
-function pop(arr, i) {
-    var removed = arr.splice(i, 1);
-    return removed[0]
-}
-
 export function dot(x, y) {
     var x_dim = x.shape.length;
     var y_dim = y.shape.length;
@@ -84,10 +61,8 @@ export function dot(x, y) {
 
     var y_permute_dim = range(0, y_dim);
 
-    //console.log(y_permute_dim)
     y_permute_dim = [pop(y_permute_dim, y_permute_dim.length - 2)].concat(y_permute_dim);
 
-    //console.log(y_permute_dim);
     var xt = tf.reshape(x, [x.size/x.shape[x_dim - 1], x.shape[x_dim - 1]]);
     var yt = tf.reshape(
         tf.transpose(y, y_permute_dim),
@@ -119,21 +94,39 @@ export function gelu(x) {
     )
 }
 
-// var x = tf.initializers.ones().apply([1, 1024, 50257]);
-// var y = tf.softmax(x);
-// // var y = gelu(x);
-// console.log(x.arraySync());
-// console.log(y.arraySync())
-//console.log(dot(x, y));
+export function enumerate(list) {
+    return zip(range(0, list.length), list);
+}
+    
+export function zip(arr1, arr2) {
+    return arr1.map(function(e, i) {
+        return [e, arr2[i]];
+    })
+}
 
-// module.exports = {
-//     batchDot:batchDot,
-//     biasAdd:biasAdd
-// }
+export function range(start, finish) {
+    var size = finish - start;
+    return [...Array(size).keys()].map(i => i + start);
+}
 
-// fetch('http://localhost:8000/vocab.bpe')
-//   .then(response => response.text())
-//   .then((data) => {
-//     console.log(data)
-//   })
+export function pop(arr, i) {
+    var removed = arr.splice(i, 1);
+    return removed[0]
+}
 
+export function swap(json){
+    var ret = {};
+    for(var key in json){
+      ret[json[key]] = key;
+    }
+    return ret;
+}
+
+export function strip(str) {
+    return str.replace(/^\s+|\s+$/g, '');
+}
+
+export function arraysEqual(a1,a2) {
+    /* WARNING: arrays must not contain {objects} or behavior may be undefined */
+    return JSON.stringify(a1)==JSON.stringify(a2);
+}

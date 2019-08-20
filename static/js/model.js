@@ -1,12 +1,11 @@
-
 import {EmbeddingRet} from './model/embedding_ret.js/index.js';
 import {PositionEmbedding} from './model/position_embedding.js';
 import {MultiHeadAttention} from './model/multi_head_attention.js';
 import {FeedForward} from './model/feed_forward.js/index.js';
 import {LayerNormalization} from './model/layer_normalization.js';
 import {EmbeddingSim} from './model/embedding_sim.js/index.js'
-import {gelu} from './model/utils.js';
-import {get_encoder, range} from './encoder.js';
+import {gelu, range} from './model/utils.js';
+import {get_encoder} from './encoder.js';
 
 /*
 MODEL
@@ -14,6 +13,7 @@ MODEL
     - Takes preprocessed input text -> encodes -> feeds into model -> decodes output
     - Based off the Keras GPT-2 model at https://github.com/CyberZHG/keras-gpt-2/tree/master/keras_gpt_2
 */
+
 export class Model {
     constructor() { 
         this.model = this.getModel();    
@@ -138,10 +138,6 @@ export class Model {
     }
     
     getEncoderComponent(name, inputLayer, headNum, hiddenDim, attentionActivation=null, feedForwardActivation=tf.relu, trainable=true) {
-    
-        var attentionName = name.concat('-MultiHeadAtt');
-        var feedForwardName = name.concat('-FeedForward');
-    
         var normalLayer = new LayerNormalization(
             undefined,
             undefined, 
