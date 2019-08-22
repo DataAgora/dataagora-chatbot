@@ -1,9 +1,9 @@
-import {EmbeddingRet} from './model/embedding_ret.js/index.js';
+import {EmbeddingRet} from './model/embedding_ret.js';
 import {PositionEmbedding} from './model/position_embedding.js';
 import {MultiHeadAttention} from './model/multi_head_attention.js';
-import {FeedForward} from './model/feed_forward.js/index.js';
+import {FeedForward} from './model/feed_forward.js';
 import {LayerNormalization} from './model/layer_normalization.js';
-import {EmbeddingSim} from './model/embedding_sim.js/index.js'
+import {EmbeddingSim} from './model/embedding_sim.js'
 import {gelu, range} from './model/utils.js';
 import {get_encoder} from './encoder.js';
 
@@ -15,16 +15,18 @@ MODEL
 */
 
 export class Model {
-    constructor() { 
-        this.model = this.getModel();    
+    constructor(model) { 
+        this.model = model;
+        var layer1 = model.layers[1];
+        layer1.embeddingObject.setWeights(layer1.getWeights());
         this.store = false;    
     }
 
-    static async getPartialModel(model, layerNum) {
-        var new_model = tf.model({inputs:model.inputs[0], outputs:model.layers[layerNum].output});
-        await Model.getSetWeights(new_model, layerNum);
-        return new_model;
-    }
+    // static async getPartialModel(model, layerNum) {
+    //     // var new_model = tf.model({inputs:model.inputs[0], outputs:model.layers[layerNum].output});
+    //     // await Model.getSetWeights(new_model, layerNum);
+    //     return new_model;
+    // }
 
     static async getSetWeights(model, maxLayer=76) {
         var baseUrl = 'https://dataagora-chatbot.s3-us-west-1.amazonaws.com/weights_12/weights_';
@@ -51,8 +53,10 @@ export class Model {
         var max_len = Math.max(text_lens)
         var input_data = [encodings];
         var textLen = 21;
+        console.log(texts)
         range(0, textLen).forEach(shift => {
             var output_data = model.predict(tf.tensor(input_data)).arraySync();
+            //console.log(output_data);
             range(0, batch_size).forEach(index => {
                 var probs = tf.tensor(output_data[index][max_len + shift - 1]);
                 var {values, indices} = tf.topk(probs, top_k);
@@ -64,13 +68,61 @@ export class Model {
                 var next_token = indices.arraySync()[0];
                 input_data[index].push(0);
                 input_data[index][max_len + shift] = next_token;
+                console.log(next_token);
             })
         });
     
         var outputs = encoder.decode(input_data[0].slice(max_len, max_len + textLen));
-            
+        
+        console.log(outputs);
         return outputs;
     }
+
+    async backwardsPass(texts) {
+        var batch_size = texts.length;
+        var model = this.model;
+        var encoder = await get_encoder();
+        var encodings = encoder.encode(texts[0]);
+        var text_lens = [encodings.length];
+        var max_len = Math.max(text_lens)
+        var input_data = [encodings];
+        var model = this.model;
+        var modelJSON = await fetch('weights/model.json');
+        modelJSON = await modelJSON.json();
+        var optimization_data = modelJSON['modelTopology']['training_config'];
+        optimization_data['loss'] = 'categoricalCrossentropy';
+        model = this.compileModel(model, optimization_data);
+        var encodedOutput = model.predict(tf.tensor(input_data))
+        console.log(encodedOutput);
+        var start = Date.now();
+        var results = await model.trainOnBatch(tf.tensor(input_data), encodedOutput);
+        var end = Date.now();
+        console.log("Number of minutes: ", (end - start)/60000);
+        console.log(results);
+        console.log("Done!")
+    }
+
+    compileModel(model, optimization_data) {
+        var optimizer;
+        var optimizer_config = optimization_data['optimizer_config']
+        if (optimization_data['optimizer_config']['class_name'] == 'SGD') {
+            // SGD
+            optimizer = tf.train.sgd(optimization_data['optimizer_config']['config']['lr']);
+        } else if (optimization_data['optimizer_config']['class_name'] == 'Adam') {
+            optimizer = tf.train.adam(optimizer_config['config']['lr'], optimizer_config['config']['beta1'], optimizer_config['config']['beta2']);
+        } else {
+            // Not supported!
+            throw "Optimizer not supported!";
+        }
+
+        model.compile({
+            optimizer: optimizer,
+            loss: optimization_data['loss'],
+            metrics: optimization_data['metrics']
+        });
+        //console.log("Model compiled!", model);
+        return model;
+};
 
     getModel(n_vocab=50257, n_ctx=1024, n_embd=768, n_head=12, n_layer=12, batch_size=null, fixed_input_shape=false) {
 
@@ -81,7 +133,12 @@ export class Model {
             outputDim:n_embd,
             maskZero:false,
             name:'Embed-Token'
-        }).apply(inputLayer);
+        }); 
+        
+        console.log(embeddingRet)
+        embeddingRet = embeddingRet.apply(inputLayer);
+
+        console.log(embeddingRet);
     
         var embedToken = embeddingRet[0];
         var embeddings = embeddingRet[1];

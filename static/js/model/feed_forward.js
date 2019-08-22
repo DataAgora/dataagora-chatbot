@@ -2,19 +2,17 @@
 // var assert = require('assert');
 // var biasAdd = require('./utils').biasAdd;
 
-import {biasAdd, dot} from './utils.js';
+import {biasAdd, dot, gelu} from './utils.js';
 
 export class FeedForward extends tf.layers.Layer {
 
-    constructor(units, activation=tf.relu, useBias=true, kernelInitializer=tf.initializers.glorotNormal(),
+    constructor(units, activation=gelu, useBias=true, kernelInitializer=tf.initializers.glorotNormal(),
     biasInitializer=tf.initializers.zeros(), kernelConstraint=null, biasRegularizer=null, biasConstraint=null, 
     dropoutRate=0.0, ...args) {
 
         if (typeof units == 'object') {
             var config = units;
             units = config.units;
-            activation = config.activation;
-            useBias = config.useBias;
             super({trainable:config.trainable, name:config.name});
         } else {
             super(...args);

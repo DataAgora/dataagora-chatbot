@@ -9,7 +9,7 @@ export var DataManager = /** @class */ (function () {
     DataManager.bootstrap = function (repo_id) {
         DataManager.repo_id = repo_id;
         DataManager.cloud_url = "http://" + repo_id + ".au4c4pd2ch.us-west-1.elasticbeanstalk.com";
-        DataManager.ws = new WebSocket("ws://" + repo_id + ".au4c4pd2ch.us-west-1.elasticbeanstalk.com");
+        DataManager.ws = new WebSocket("wss://" + repo_id + ".au4c4pd2ch.us-west-1.elasticbeanstalk.com");
         DataManager.ws.addEventListener("open", function (event) {
             var registrationMessage = {
                 "type": "REGISTER",

@@ -8,6 +8,9 @@
 !static/css/*
 !static/css/Images/*
 !static/js/*
+!static/js/model/*
+!static/js/dataagora-dml/*
+!static/weights/*
 !templates/*
 !main.py
 !requirements.txt

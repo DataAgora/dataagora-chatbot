@@ -38,23 +38,17 @@ export class EmbeddingRet extends tf.layers.Layer {
     }
 
     build(...args) {
-        return this.embeddingObject.build(...args);
-    }
-
-    getWeights(...args) {
-        return this.embeddingObject.getWeights(...args);
-    }
-
-    setWeights(...args) {
-        return this.embeddingObject.setWeights(...args);
-    }
-
-    addWeight(...args) {
-        return this.embeddingObject.addWeight(...args);
+        var buildResult =  this.embeddingObject.build(...args);
+        this.embeddings = this.addWeight(
+            'embeddings', [this.embeddingObject.inputDim, this.embeddingObject.outputDim], 
+            this.embeddingObject.dtype, this.embeddingObject.embeddingsInitializer, 
+            this.embeddingObject.embeddingsRegularizer, true,
+            this.embeddingObject.embeddingsConstraint);
+        return buildResult;
     }
 
     addLoss(...args) {
-        return this.embeddingObject.addLoss(...args);
+        return this.addLoss(...args);
     }
 
     getConfig(...args) {

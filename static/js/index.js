@@ -117,9 +117,12 @@ $('document').ready(function(){
 // Load model, disable input box in the meantime.
 async function loadModel() {
 	console.log("Loading model...")
-	model = new Model();
+	var start = Date.now()
+	model = await tf.loadLayersModel('weights/model.json');
+	var end = Date.now();
 	console.log("Model created");
-	model.model = await Model.getPartialModel(model.model, 76);
+	console.log("Number of minutes: ", (end - start)/60000)
+	model = new Model(model);
 	console.log('Weights loaded!');
 	chatbot = new Chatbot(undefined, model);
 	document.getElementById('inputText').disabled = false;
@@ -138,6 +141,12 @@ async function send(inputText) {
 	// Find the last message in the chatlogs
 	var $sentMessage = $(".chatlogs .chat").last();
 	
+	// Set up library if necessary, and then store the input/output text
+	// const repo_id = "3e55b6e37447aca26c807c2aa5961d89";
+	// if (!dataagora_dml.isBootstrapped()) {
+	// 	dataagora_dml.bootstrap(repo_id);
+	// }
+
 	// Check to see if that message is visible
 	checkVisibility($sentMessage);
 
@@ -148,21 +157,18 @@ async function send(inputText) {
 	showLoading();
 	
 	// Send chatbot input text, wait for output
-	await chatbot.next(true, inputText);
-	var chatbotText = await chatbot.next();
-	console.log("Got output!");
-
-
 	
-	// Set up library if necessary, and then store the input/output text
-	const repo_id = "3e55b6e37447aca26c807c2aa5961d89";
-	if (!dataagora_dml.isBootstrapped) {
-		dataagora_dml.bootstrap(repo_id);
-	}
-	dataagora_dml.store(inputText);
-	dataagora_dml.store(chatbotText);
-
-
+	await chatbot.next(true, inputText);
+	var start = Date.now();
+	var chatbotText = await chatbot.next();
+	var end = Date.now();
+	console.log("Got output!", chatbotText);
+	console.log("Number of minutes: ", (end - start)/60000)
+	// dataagora_dml.store(repo_id, inputText);
+	// dataagora_dml.store(repo_id, chatbotText);
+	
+	// model.backwardsPass()
+	// var chatbotText = "Howdy";
 	newRecievedMessage(chatbotText);
 
 	document.getElementById('inputText').disabled = false;

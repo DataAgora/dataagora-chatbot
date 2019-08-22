@@ -8,7 +8,7 @@ export class EmbeddingSim extends tf.layers.Layer {
     constructor(useBias=false, initializer=tf.initializers.zeros, regularizer=null, constraint=null, stopGradient=false, ...args) {
         if (typeof useBias == 'object') {
             var config = useBias;
-            useBias = config.useBias;
+            useBias = false;
             super({trainable:config.trainable, name:config.name});
         } else {
             super(...args);
