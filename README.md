@@ -1,5 +1,5 @@
-# dataagora-chatbot
-DataAgora's decentralized chatbot that trains in real time with federated learning. Chatbot is served at chatbot.dataagora.com
+# discreetai-chatbot
+DiscreetAI's decentralized chatbot that trains in real time with federated learning. Chatbot is served at chatbot.dataagora.com [deprecated]
 
 Deploying the chatbot is as straightforward as ```python main.py``` on a remote Elastic Beanstalk (EB) server instance with the appropriate .eb files.
 
